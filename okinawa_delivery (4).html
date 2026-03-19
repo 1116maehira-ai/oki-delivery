@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>OKI配達MGR</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root {
+  --bg:#0a1628;--bg2:#0f1f38;--bg3:#162840;--bg4:#1e3350;
+  --ocean:#1a7fe8;--ocean2:#0d5fbf;--sky:#7ec8f7;
+  --coral:#ff6b35;--coral2:#ff9561;--mint:#00c9a7;
+  --yellow:#ffd23f;--red:#ff4757;
+  --text:#ddeeff;--dim:#6a90b8;--border:#1e3a5c;
+  --r:12px;--shadow:0 4px 32px rgba(0,0,0,.5);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+.screen{position:absolute;inset:0;display:none;flex-direction:column;overflow:hidden}
+.screen.active{display:flex}
+
+/* LOGIN */
+#loginScreen{background:radial-gradient(ellipse at 30% 20%,#1a3a6e 0%,#0a1628 60%);align-items:center;justify-content:center}
+.login-wrap{width:min(400px,92vw);animation:fadeUp .5s ease}
+@keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
+.login-logo{text-align:center;margin-bottom:40px}
+.login-logo .mark{font-family:'DM Mono',monospace;font-size:42px;font-weight:500;color:var(--sky);letter-spacing:4px}
+.login-logo .mark span{color:var(--coral)}
+.login-logo .sub{font-size:12px;color:var(--dim);letter-spacing:3px;text-transform:uppercase;margin-top:4px}
+.role-cards{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px}
+.role-card{background:var(--bg3);border:1.5px solid var(--border);border-radius:16px;padding:24px 16px;text-align:center;cursor:pointer;transition:all .2s}
+.role-card:hover,.role-card:active{border-color:var(--ocean);background:var(--bg4);transform:translateY(-2px)}
+.role-card .icon{font-size:36px;margin-bottom:10px}
+.role-card .title{font-size:15px;font-weight:700;margin-bottom:4px}
+.role-card .desc{font-size:11px;color:var(--dim)}
+.pin-wrap{background:var(--bg3);border:1.5px solid var(--border);border-radius:16px;padding:24px;display:none}
+.pin-wrap.show{display:block}
+.pin-title{font-size:13px;color:var(--dim);margin-bottom:12px;text-align:center}
+.pin-dots{display:flex;gap:10px;justify-content:center;margin-bottom:16px}
+.pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border);transition:all .2s}
+.pin-dot.filled{background:var(--ocean);border-color:var(--ocean)}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.pin-btn{background:var(--bg4);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:18px;font-family:'DM Mono',monospace;color:var(--text);cursor:pointer;transition:all .15s;text-align:center;user-select:none}
+.pin-btn:active{background:var(--ocean);transform:scale(.95)}
+.pin-error{color:var(--red);font-size:12px;text-align:center;margin-top:8px;display:none}
+.delegate-list{display:none}
+.delegate-list.show{display:block}
+.delegate-item{display:flex;align-items:center;gap:12px;padding:12px 16px;background:var(--bg3);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;cursor:pointer;transition:all .2s}
+.delegate-item:hover,.delegate-item:active{border-color:var(--ocean);background:var(--bg4)}
+.d-avatar{width:40px;height:40px;border-radius:50%;background:var(--ocean2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;flex-shrink:0}
+.d-name{font-weight:600;font-size:14px}
+.d-area{font-size:11px;color:var(--dim)}
+.back-btn{text-align:center;margin-top:12px;color:var(--dim);font-size:12px;cursor:pointer;text-decoration:underline}
+
+/* ADMIN */
+.topbar{height:52px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;z-index:10;overflow-x:auto}
+.topbar::-webkit-scrollbar{display:none}
+.topbar-logo{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;color:var(--sky);letter-spacing:2px;flex-shrink:0}
+.topbar-logo span{color:var(--coral)}
+.topbar-user{display:flex;align-items:center;gap:8px;margin-left:auto;background:var(--bg3);border:1px solid var(--border);border-radius:20px;padding:4px 12px;font-size:12px;cursor:pointer;flex-shrink:0}
+.topbar-user .dot{width:7px;height:7px;border-radius:50%;background:var(--mint)}
+.top-btn{padding:5px 12px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--dim);font-family:'Noto Sans JP',sans-serif;font-size:12px;cursor:pointer;transition:all .2s;white-space:nowrap;flex-shrink:0}
+.top-btn:hover{background:var(--bg4);color:var(--text)}
+.top-btn.accent{border-color:var(--mint);color:var(--mint)}
+.admin-nav{background:var(--bg2);border-bottom:1px solid var(--border);display:flex;padding:0 12px;overflow-x:auto;flex-shrink:0}
+.admin-nav::-webkit-scrollbar{display:none}
+.anav-tab{padding:10px 14px;font-size:12px;font-weight:500;color:var(--dim);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all .2s}
+.anav-tab.active{color:var(--sky);border-bottom-color:var(--ocean)}
+.anav-tab:hover:not(.active){color:var(--text)}
+.admin-body{flex:1;overflow-y:auto;padding:20px}
+.admin-body::-webkit-scrollbar{width:4px}
+.admin-body::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:2px}
+.asection{display:none}
+.asection.active{display:block}
+
+/* CARDS / GRID */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:18px;box-shadow:var(--shadow)}
+.card-title{font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.card-title::before{content:'';width:3px;height:14px;background:var(--ocean);border-radius:2px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+@media(max-width:700px){.g2,.g3,.g5{grid-template-columns:1fr 1fr}}
+@media(max-width:400px){.g2,.g3,.g5{grid-template-columns:1fr}}
+.stat{background:var(--bg3);border-radius:10px;padding:14px;text-align:center}
+.stat-n{font-family:'DM Mono',monospace;font-size:26px;font-weight:500}
+.stat-l{font-size:10px;color:var(--dim);margin-top:3px;letter-spacing:.5px}
+.stat-s{font-size:11px;margin-top:2px;color:var(--coral2)}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.5px}
+.b-green{background:rgba(0,201,167,.12);color:var(--mint)}
+.b-red{background:rgba(255,71,87,.12);color:var(--red)}
+.b-yellow{background:rgba(255,210,63,.12);color:var(--yellow)}
+.b-blue{background:rgba(26,127,232,.15);color:var(--sky)}
+.b-coral{background:rgba(255,107,53,.12);color:var(--coral2)}
+.pbar{background:var(--bg);border-radius:4px;height:5px;overflow:hidden;margin-top:6px}
+.pfill{height:100%;border-radius:4px;transition:width .4s ease}
+.row{display:flex;align-items:center;gap:10px;padding:9px 12px;background:var(--bg3);border-radius:8px;margin-bottom:5px;transition:background .15s}
+.row:hover{background:var(--bg4)}
+.row-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.row-name{flex:1;font-size:13px}
+.row-sub{font-size:10px;color:var(--dim)}
+.row-mono{font-family:'DM Mono',monospace;font-size:11px;color:var(--dim)}
+.avatar{width:34px;height:34px;border-radius:50%;background:var(--ocean2);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0}
+.btn{padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-family:'Noto Sans JP',sans-serif;font-size:12px;font-weight:600;transition:all .18s;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.btn-primary{background:var(--ocean);color:#fff}
+.btn-primary:hover{background:var(--ocean2)}
+.btn-coral{background:var(--coral);color:#fff}
+.btn-coral:hover,.btn-coral:active{background:#e05520}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--dim)}
+.btn-ghost:hover{background:var(--bg4);color:var(--text)}
+.btn-danger{background:rgba(255,71,87,.15);border:1px solid rgba(255,71,87,.3);color:var(--red)}
+.btn-sm{padding:4px 10px;font-size:11px}
+.fg{margin-bottom:12px}
+.fl{font-size:11px;color:var(--dim);margin-bottom:5px;display:block;letter-spacing:.5px}
+.fi{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 12px;color:var(--text);font-family:'Noto Sans JP',sans-serif;font-size:13px;outline:none;transition:border .2s}
+.fi:focus{border-color:var(--ocean)}
+select.fi option{background:var(--bg2)}
+textarea.fi{resize:vertical;min-height:70px}
+.upzone{border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;cursor:pointer;transition:all .2s;color:var(--dim);font-size:13px}
+.upzone:hover,.upzone:active{border-color:var(--ocean);color:var(--text)}
+.upzone input{display:none}
+.photo-th{width:70px;height:70px;border-radius:8px;overflow:hidden;background:var(--bg3);position:relative;flex-shrink:0;display:inline-block}
+.photo-th img{width:100%;height:100%;object-fit:cover}
+.photo-th .del{position:absolute;top:3px;right:3px;background:rgba(0,0,0,.7);border:none;color:#fff;border-radius:50%;width:18px;height:18px;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.photo-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:22px;width:min(480px,95vw);max-height:92vh;overflow-y:auto;box-shadow:0 8px 48px rgba(0,0,0,.6)}
+.modal::-webkit-scrollbar{width:3px}
+.modal::-webkit-scrollbar-thumb{background:var(--bg4)}
+.modal-title{font-size:15px;font-weight:700;margin-bottom:16px;color:var(--sky)}
+.modal-close{float:right;background:none;border:none;color:var(--dim);font-size:20px;cursor:pointer;line-height:1;margin-top:-2px}
+#toast{display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--mint);color:#002a20;padding:10px 22px;border-radius:24px;font-size:13px;font-weight:700;z-index:500;box-shadow:0 4px 20px rgba(0,201,167,.4);white-space:nowrap;pointer-events:none}
+
+/* ADMIN TODAY */
+.person-today{background:var(--bg3);border-radius:12px;padding:14px;margin-bottom:10px;border:1px solid var(--border)}
+.pt-header{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.pt-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.pt-stat{background:var(--bg2);border-radius:8px;padding:8px;text-align:center}
+.pt-num{font-family:'DM Mono',monospace;font-size:16px;font-weight:500}
+.pt-label{font-size:10px;color:var(--dim);margin-top:2px}
+.missed-row{display:flex;align-items:center;gap:8px;padding:7px 10px;background:rgba(255,71,87,.07);border-radius:8px;margin-bottom:5px;border:1px solid rgba(255,71,87,.15)}
+.assign-btn{padding:4px 10px;background:var(--coral);color:#fff;border:none;border-radius:6px;font-size:11px;font-family:'Noto Sans JP',sans-serif;cursor:pointer;font-weight:600;flex-shrink:0}
+.assign-btn:active{background:#e05520}
+.area-card{background:var(--bg3);border-radius:12px;padding:14px;border-left:4px solid var(--ocean);cursor:pointer;transition:all .2s;margin-bottom:10px}
+.area-card:hover{background:var(--bg4)}
+.area-card.sel{border-left-color:var(--coral)}
+.ftable{background:var(--bg3);border-radius:10px;padding:14px}
+.frow{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:13px;border-bottom:1px solid var(--bg)}
+.frow:last-child{border-bottom:none;font-weight:700;color:var(--coral2);font-size:14px;padding-top:10px}
+
+/* DELEGATE */
+#delegateScreen{background:var(--bg)}
+.dtop{height:52px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0}
+.dtop-name{font-weight:700;font-size:14px;flex:1}
+.dtop-area{font-size:10px;color:var(--dim)}
+.logout-btn{background:transparent;border:1px solid var(--border);color:var(--dim);border-radius:8px;padding:4px 10px;font-size:11px;cursor:pointer}
+.dnav{display:flex;background:var(--bg2);border-top:1px solid var(--border);flex-shrink:0}
+.dnav-tab{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 4px 8px;cursor:pointer;transition:all .15s;border:none;background:transparent;color:var(--dim)}
+.dnav-tab.active{color:var(--ocean)}
+.dnav-tab .dicon{font-size:22px;line-height:1}
+.dnav-tab .dlabel{font-size:10px;margin-top:3px;font-family:'Noto Sans JP',sans-serif}
+.dbody{flex:1;overflow-y:auto;padding:16px}
+.dbody::-webkit-scrollbar{display:none}
+.dsection{display:none}
+.dsection.active{display:block}
+.ucat{background:var(--bg2);border:1.5px solid var(--border);border-radius:14px;padding:16px 10px;text-align:center;cursor:pointer;transition:all .2s;user-select:none}
+.ucat:active{background:var(--bg4);border-color:var(--coral)}
+.ucat .uicon{font-size:30px;margin-bottom:6px}
+.ucat .ulabel{font-size:12px;font-weight:600}
+.ucat .ucount{font-size:10px;color:var(--dim);margin-top:2px}
+.fcheck{display:flex;align-items:center;gap:12px;padding:13px 14px;background:var(--bg2);border-radius:12px;margin-bottom:8px;border:1.5px solid var(--border);transition:all .2s}
+.fcheck.done{border-color:var(--mint);background:rgba(0,201,167,.05)}
+.fcheck-cb{width:24px;height:24px;border-radius:6px;border:2px solid var(--border);background:transparent;flex-shrink:0;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;transition:all .2s}
+.fcheck.done .fcheck-cb{background:var(--mint);border-color:var(--mint);color:#003}
+.fcheck-name{font-size:14px;font-weight:500}
+.fcheck-sub{font-size:11px;color:var(--dim);margin-top:2px}
+.meter-display{background:var(--bg3);border-radius:12px;padding:16px;margin-bottom:14px}
+.meter-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--bg)}
+.meter-row:last-child{border-bottom:none}
+.mkey{font-size:12px;color:var(--dim)}
+.mval{font-family:'DM Mono',monospace;font-size:14px;color:var(--sky)}
+.receipt-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--bg2);border-radius:10px;margin-bottom:6px;border:1px solid var(--border)}
+.r-icon{font-size:20px;flex-shrink:0}
+.r-info{flex:1;min-width:0}
+.r-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r-date{font-size:10px;color:var(--dim)}
+.r-amount{font-family:'DM Mono',monospace;font-size:13px;color:var(--coral2);font-weight:600;flex-shrink:0}
+.sched-item{background:var(--bg2);border-radius:12px;padding:14px;margin-bottom:10px;border:1.5px solid var(--border)}
+.sched-date{font-family:'DM Mono',monospace;font-size:12px;color:var(--coral2);margin-bottom:4px}
+.sched-area{font-size:14px;font-weight:700}
+.sched-note{font-size:12px;color:var(--dim);margin-top:4px}
+.big-receipt{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px}
+.rcbtn{background:var(--bg2);border:1.5px solid var(--border);border-radius:14px;padding:16px 8px;text-align:center;cursor:pointer;transition:all .2s;position:relative}
+.rcbtn:active{background:var(--bg4);border-color:var(--coral)}
+.rcbtn input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.rcbtn .rcicon{font-size:28px;margin-bottom:6px}
+.rcbtn .rclabel{font-size:12px;font-weight:700}
+.rcbtn .rccount{font-size:10px;color:var(--dim);margin-top:2px}
+.btn-mint{background:rgba(0,201,167,.15);border:1px solid rgba(0,201,167,.3);color:var(--mint)}
+</style>
+</head>
+<body>
+
+<!-- ═══════ LOGIN ═══════ -->
+<div id="loginScreen" class="screen active">
+  <div class="login-wrap">
+    <div class="login-logo">
+      <div class="mark">OKI<span>配達</span></div>
+      <div class="sub">Delivery Management System</div>
+    </div>
+    <div id="roleSelect">
+      <div class="role-cards">
+        <div class="role-card" onclick="selectRole('admin')">
+          <div class="icon">👑</div>
+          <div class="title">管理者</div>
+          <div class="desc">全体管理・指示・集計</div>
+        </div>
+        <div class="role-card" onclick="selectRole('delegate')">
+          <div class="icon">🚗</div>
+          <div class="title">お届け担当</div>
+          <div class="desc">配達・写真・領収書</div>
+        </div>
+      </div>
+    </div>
+    <div class="pin-wrap" id="pinWrap">
+      <div class="pin-title">管理者PINを入力してください</div>
+      <div class="pin-dots" id="pinDots">
+        <div class="pin-dot" id="pd0"></div><div class="pin-dot" id="pd1"></div>
+        <div class="pin-dot" id="pd2"></div><div class="pin-dot" id="pd3"></div>
+      </div>
+      <div class="pin-pad">
+        <div class="pin-btn" onclick="pinInput('1')">1</div><div class="pin-btn" onclick="pinInput('2')">2</div><div class="pin-btn" onclick="pinInput('3')">3</div>
+        <div class="pin-btn" onclick="pinInput('4')">4</div><div class="pin-btn" onclick="pinInput('5')">5</div><div class="pin-btn" onclick="pinInput('6')">6</div>
+        <div class="pin-btn" onclick="pinInput('7')">7</div><div class="pin-btn" onclick="pinInput('8')">8</div><div class="pin-btn" onclick="pinInput('9')">9</div>
+        <div class="pin-btn" onclick="pinClear()" style="font-size:12px">CLR</div>
+        <div class="pin-btn" onclick="pinInput('0')">0</div>
+        <div class="pin-btn" onclick="pinBack()" style="font-size:14px">⌫</div>
+      </div>
+      <div class="pin-error" id="pinError">PINが違います</div>
+      <div class="back-btn" onclick="backToRole()">← 戻る</div>
+    </div>
+    <div class="delegate-list" id="delegateList">
+      <div style="font-size:12px;color:var(--dim);margin-bottom:10px;text-align:center">あなたの名前を選んでください</div>
+      <div id="delegateItems"></div>
+      <div class="back-btn" onclick="backToRole()">← 戻る</div>
+    </div>
+    <!-- Delegate PIN -->
+    <div class="pin-wrap" id="delegatePinWrap">
+      <div class="pin-title" id="delegatePinName">PINを入力してください</div>
+      <div class="pin-dots">
+        <div class="pin-dot" id="dpd0"></div><div class="pin-dot" id="dpd1"></div>
+        <div class="pin-dot" id="dpd2"></div><div class="pin-dot" id="dpd3"></div>
+      </div>
+      <div class="pin-pad">
+        <div class="pin-btn" onclick="delegatePinInput('1')">1</div><div class="pin-btn" onclick="delegatePinInput('2')">2</div><div class="pin-btn" onclick="delegatePinInput('3')">3</div>
+        <div class="pin-btn" onclick="delegatePinInput('4')">4</div><div class="pin-btn" onclick="delegatePinInput('5')">5</div><div class="pin-btn" onclick="delegatePinInput('6')">6</div>
+        <div class="pin-btn" onclick="delegatePinInput('7')">7</div><div class="pin-btn" onclick="delegatePinInput('8')">8</div><div class="pin-btn" onclick="delegatePinInput('9')">9</div>
+        <div class="pin-btn" onclick="delegatePinClear()" style="font-size:12px">CLR</div>
+        <div class="pin-btn" onclick="delegatePinInput('0')">0</div>
+        <div class="pin-btn" onclick="delegatePinBack()" style="font-size:14px">⌫</div>
+      </div>
+      <div class="pin-error" id="delegatePinError">PINが違います</div>
+      <div class="back-btn" onclick="backToDelegateList()">← 名前選択に戻る</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ ADMIN ═══════ -->
+<div id="adminScreen" class="screen">
+  <div class="topbar">
+    <div class="topbar-logo">OKI<span>配達</span></div>
+    <button class="top-btn accent" onclick="document.getElementById('xlsxFile').click()">📥 Excel取込</button>
+    <input type="file" id="xlsxFile" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleExcelImport(this)">
+    <button class="top-btn" onclick="openModal('addPersonModal')">＋お届け担当</button>
+    <button class="top-btn" onclick="openModal('addFacModal')">＋施設</button>
+    <div class="topbar-user" onclick="logout()">
+      <div class="dot"></div><span>管理者</span>
+      <span style="font-size:10px;color:var(--dim)">ログアウト</span>
+    </div>
+  </div>
+  <div class="admin-nav">
+    <div class="anav-tab active" onclick="aTab('today',this)">📍 今日の状況</div>
+    <div class="anav-tab" onclick="aTab('areas',this)">🗺 エリア管理</div>
+    <div class="anav-tab" onclick="aTab('facilities',this)">🏨 施設一覧</div>
+    <div class="anav-tab" onclick="aTab('schedule',this)">📅 スケジュール</div>
+    <div class="anav-tab" onclick="aTab('expenses',this)">💰 経費集計</div>
+    <div class="anav-tab" onclick="aTab('persons',this)">👥 お届け担当管理</div>
+  </div>
+  <div class="admin-body">
+
+    <div id="a-today" class="asection active">
+      <div class="g5" style="margin-bottom:16px" id="todayStats"></div>
+      <div class="g2">
+        <div>
+          <div class="card"><div class="card-title">お届け担当別 本日活動</div><div id="todayPersons"></div></div>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:14px">
+            <div class="card-title">⚠️ 未回収施設 — 緊急対応</div>
+            <div id="missedFacilities"></div>
+          </div>
+          <div class="card"><div class="card-title">💰 本日の経費サマリー</div><div id="todaySummary"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="a-areas" class="asection">
+      <div class="g3" id="areaCards" style="margin-bottom:16px"></div>
+      <div class="card" id="areaDetail" style="display:none">
+        <div class="card-title" id="areaDetailTitle"></div>
+        <div id="areaFacList" style="max-height:360px;overflow-y:auto"></div>
+      </div>
+    </div>
+
+    <div id="a-facilities" class="asection">
+      <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+        <input class="fi" style="max-width:200px" placeholder="施設名で検索..." oninput="filterFac(this.value)">
+        <select class="fi" style="max-width:150px" onchange="filterFacArea(this.value)" id="facAreaFilter"><option value="">全エリア</option></select>
+        <select class="fi" style="max-width:150px" onchange="filterFacStatus(this.value)">
+          <option value="">全ステータス</option>
+          <option value="ok">配布済</option><option value="ng">未配布</option><option value="partial">要補充</option>
+        </select>
+      </div>
+      <div id="facList" style="max-height:calc(100vh - 280px);overflow-y:auto"></div>
+    </div>
+
+    <div id="a-schedule" class="asection">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div style="font-weight:700;font-size:15px">配達スケジュール</div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('addSchedModal')">＋追加</button>
+      </div>
+      <div class="card" style="margin-bottom:14px"><div class="card-title">スケジュール一覧</div><div id="schedList"></div></div>
+      <div class="card">
+        <div class="card-title">📋 次回配達指示書</div>
+        <div class="g2">
+          <div>
+            <div class="fg"><label class="fl">担当者</label><select class="fi" id="instrPerson"></select></div>
+            <div class="fg"><label class="fl">担当エリア</label><select class="fi" id="instrArea"></select></div>
+            <div class="fg"><label class="fl">配達日</label><input class="fi" type="date" id="instrDate"></div>
+            <button class="btn btn-coral" style="width:100%" onclick="generateInstruction()">📄 指示書生成</button>
+          </div>
+          <div id="instrOut" style="display:none">
+            <div style="background:var(--bg3);border-radius:12px;padding:14px;border:1px solid var(--ocean2)" id="instrContent"></div>
+            <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+  <button class="btn btn-ghost btn-sm" onclick="copyInstr()">📋 コピー</button>
+  <button class="btn btn-mint btn-sm" onclick="openRouteMap()">🗺 Googleマップでルート開く</button>
+</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="a-expenses" class="asection">
+      <div class="g2" style="margin-bottom:14px">
+        <div class="card"><div class="card-title">お届け担当別経費</div><div id="expPersonList"></div></div>
+        <div class="card">
+          <div class="card-title">⛽ ガソリン代計算</div>
+          <div class="ftable" id="fuelTable"></div>
+          <div class="g2" style="margin-top:10px">
+            <div class="fg" style="margin-bottom:0"><label class="fl">燃費(km/L)</label><input class="fi" type="number" id="fuelEff" value="12" oninput="renderExpenses()"></div>
+            <div class="fg" style="margin-bottom:0"><label class="fl">単価(円/L)</label><input class="fi" type="number" id="fuelPrc" value="175" oninput="renderExpenses()"></div>
+          </div>
+        </div>
+      </div>
+      <div class="card"><div class="card-title">🧾 全お届け担当 領収書</div><div id="allReceipts"></div></div>
+    </div>
+
+    <div id="a-persons" class="asection">
+      <div class="card"><div class="card-title">お届け担当一覧</div><div id="personList"></div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══════ DELEGATE ═══════ -->
+<div id="delegateScreen" class="screen">
+  <div class="dtop">
+    <div class="avatar" id="dAvatar" style="width:36px;height:36px;font-size:14px">田</div>
+    <div style="flex:1">
+      <div class="dtop-name" id="dName">田中 太郎</div>
+      <div class="dtop-area" id="dAreaLabel">担当：那覇・南部</div>
+    </div>
+    <button class="logout-btn" onclick="logout()">ログアウト</button>
+  </div>
+  <div class="dbody">
+    <!-- HOME -->
+    <div id="d-home" class="dsection active">
+      <!-- 今日の状況バナー -->
+      <div id="dTodayBanner" style="background:linear-gradient(135deg,var(--ocean2),var(--bg3));border-radius:14px;padding:16px;margin-bottom:12px;border:1px solid var(--ocean)">
+        <div style="font-size:11px;color:var(--sky);margin-bottom:4px;letter-spacing:1px">TODAY</div>
+        <div id="dTodayStatus" style="font-size:15px;font-weight:700">読み込み中...</div>
+        <div id="dTodayDetail" style="font-size:11px;color:var(--dim);margin-top:4px"></div>
+        <button class="btn btn-coral" style="margin-top:10px;width:100%" onclick="dTab('delivery',document.querySelectorAll('.dnav-tab')[1])">📦 今日の施設リストへ →</button>
+      </div>
+      <div class="g2" style="margin-bottom:12px" id="dHomeStats"></div>
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-title">📅 稼働予定を登録</div>
+        <div class="fg"><label class="fl">稼働予定日</label><input class="fi" type="date" id="dAvailDate"></div>
+        <div class="fg"><label class="fl">メモ</label><input class="fi" type="text" id="dAvailNote" placeholder="例：午前のみ可"></div>
+        <button class="btn btn-primary" style="width:100%" onclick="saveDAvail()">✓ 登録する</button>
+      </div>
+      <div class="card"><div class="card-title">📋 自分のスケジュール</div><div id="dMySchedule"></div></div>
+    </div>
+    <!-- DELIVERY -->
+    <div id="d-delivery" class="dsection">
+      <!-- 今日の指示カード -->
+      <div class="card" style="margin-bottom:12px;border-left:4px solid var(--coral)">
+        <div class="card-title">📋 管理者からの指示</div>
+        <div id="dTodayInstruction" style="font-size:13px;color:var(--dim)">指示がありません</div>
+      </div>
+      <!-- 今日行くべき施設 -->
+      <div class="card" style="margin-bottom:12px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div class="card-title" style="margin-bottom:0">📦 本日の担当施設</div>
+          <button class="btn btn-ghost btn-sm" onclick="openDRouteMap()" style="font-size:11px">🗺 ルート</button>
+        </div>
+        <div style="font-size:11px;color:var(--dim);margin-bottom:10px" id="dDeliveryNote"></div>
+        <div id="dFacilityChecks"></div>
+      </div>
+      <!-- 配布済リスト -->
+      <div class="card"><div class="card-title">✅ 配布済（本日）</div><div id="dDoneList"></div></div>
+    </div>
+    <!-- PHOTOS -->
+    <div id="d-photos" class="dsection">
+      <div style="font-size:12px;color:var(--dim);margin-bottom:12px;text-align:center">カテゴリを選んで写真をアップロード</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div class="ucat" onclick="openPhotoUpload('meter')">
+          <div class="uicon">🔢</div><div class="ulabel">メーター</div><div class="ucount" id="ucMeter">0枚</div>
+        </div>
+        <div class="ucat" onclick="openPhotoUpload('rack')">
+          <div class="uicon">🗂️</div><div class="ulabel">ラック設置</div><div class="ucount" id="ucRack">0枚</div>
+        </div>
+        <div class="ucat" onclick="openPhotoUpload('facility')">
+          <div class="uicon">🏨</div><div class="ulabel">施設外観</div><div class="ucount" id="ucFacility">0枚</div>
+        </div>
+        <div class="ucat" onclick="openPhotoUpload('other')">
+          <div class="uicon">📷</div><div class="ulabel">その他</div><div class="ucount" id="ucOther">0枚</div>
+        </div>
+      </div>
+      <input type="file" id="photoInput" accept="image/*" multiple style="display:none" onchange="handlePhotoUpload(this)">
+      <div id="photoGallery"></div>
+      <div class="card" style="margin-top:14px">
+        <div class="card-title">🔢 走行距離を記録</div>
+        <div class="meter-display">
+          <div class="meter-row"><span class="mkey">出発メーター</span><span class="mval" id="dMeterStart">未入力</span></div>
+          <div class="meter-row"><span class="mkey">到着メーター</span><span class="mval" id="dMeterEnd">未入力</span></div>
+          <div class="meter-row"><span class="mkey">本日走行距離</span><span class="mval" id="dMeterDiff" style="color:var(--coral2)">-- km</span></div>
+          <div class="meter-row"><span class="mkey">推定ガソリン代</span><span class="mval" id="dFuelCost" style="color:var(--yellow)">-- 円</span></div>
+        </div>
+        <div class="g2">
+          <div class="fg"><label class="fl">出発メーター(km)</label><input class="fi" type="number" id="dMeterStartIn" placeholder="45230" oninput="calcDMeter()"></div>
+          <div class="fg"><label class="fl">到着メーター(km)</label><input class="fi" type="number" id="dMeterEndIn" placeholder="45618" oninput="calcDMeter()"></div>
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="saveDMeter()">💾 走行距離を保存</button>
+      </div>
+    </div>
+    <!-- RECEIPTS -->
+    <div id="d-receipts" class="dsection">
+      <div style="font-size:13px;font-weight:700;margin-bottom:12px;text-align:center">領収書を今すぐアップロード</div>
+      <div class="big-receipt">
+        <div class="rcbtn">
+          <input type="file" accept="image/*,application/pdf" onchange="handleReceiptUpload(this,'highway')">
+          <div class="rcicon">🛣️</div><div class="rclabel">高速道路</div><div class="rccount" id="rcHighway">0件</div>
+        </div>
+        <div class="rcbtn">
+          <input type="file" accept="image/*,application/pdf" onchange="handleReceiptUpload(this,'parking')">
+          <div class="rcicon">🅿️</div><div class="rclabel">駐車場</div><div class="rccount" id="rcParking">0件</div>
+        </div>
+        <div class="rcbtn">
+          <input type="file" accept="image/*,application/pdf" onchange="handleReceiptUpload(this,'other')">
+          <div class="rcicon">📋</div><div class="rclabel">その他</div><div class="rccount" id="rcOther">0件</div>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:14px"><div class="card-title">アップロード済み</div><div id="dReceiptList"></div></div>
+      <div class="card"><div class="card-title">💰 本日の経費合計</div><div id="dExpSummary"></div></div>
+    </div>
+  </div>
+  <div class="dnav">
+    <button class="dnav-tab active" onclick="dTab('home',this)"><div class="dicon">🏠</div><div class="dlabel">ホーム</div></button>
+    <button class="dnav-tab" onclick="dTab('delivery',this)"><div class="dicon">📦</div><div class="dlabel">配達</div></button>
+    <button class="dnav-tab" onclick="dTab('photos',this)"><div class="dicon">📷</div><div class="dlabel">写真</div></button>
+    <button class="dnav-tab" onclick="dTab('receipts',this)"><div class="dicon">🧾</div><div class="dlabel">領収書</div></button>
+  </div>
+</div>
+
+<!-- ═══════ MODALS ═══════ -->
+<div class="overlay" id="addPersonModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('addPersonModal')">✕</button>
+    <div class="modal-title">お届け担当を追加</div>
+    <div class="fg"><label class="fl">氏名</label><input class="fi" id="npName" placeholder="山田 太郎"></div>
+    <div class="fg"><label class="fl">担当エリア</label><select class="fi" id="npArea"></select></div>
+    <div class="fg"><label class="fl">車両番号</label><input class="fi" id="npCar" placeholder="沖縄 300 あ 1234"></div>
+    <div class="fg"><label class="fl">燃費(km/L)</label><input class="fi" type="number" id="npFuel" value="12"></div>
+    <div class="fg"><label class="fl">ログインPIN（4桁）</label><input class="fi" type="number" id="npPin" placeholder="例：1234" maxlength="4"></div>
+    <button class="btn btn-primary" style="width:100%" onclick="addPerson()">追加する</button>
+  </div>
+</div>
+<div class="overlay" id="editPersonModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('editPersonModal')">✕</button>
+    <div class="modal-title">✏️ お届け担当プロフィール編集</div>
+    <input type="hidden" id="epId">
+    <div class="fg"><label class="fl">氏名</label><input class="fi" id="epName"></div>
+    <div class="fg"><label class="fl">担当エリア</label><select class="fi" id="epArea"></select></div>
+    <div class="fg"><label class="fl">車両番号</label><input class="fi" id="epCar"></div>
+    <div class="fg"><label class="fl">燃費(km/L)</label><input class="fi" type="number" id="epFuel"></div>
+    <div class="fg"><label class="fl">ログインPIN（4桁）</label><input class="fi" type="number" id="epPin" placeholder="4桁の数字"></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" style="flex:1" onclick="saveEditPerson()">💾 保存</button>
+      <button class="btn btn-ghost" onclick="closeModal('editPersonModal')">キャンセル</button>
+    </div>
+  </div>
+</div>
+<div class="overlay" id="addFacModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('addFacModal')">✕</button>
+    <div class="modal-title">施設を追加</div>
+    <div class="fg"><label class="fl">施設名</label><input class="fi" id="nfName" placeholder="○○ホテル"></div>
+    <div class="fg"><label class="fl">エリア</label><select class="fi" id="nfArea"></select></div>
+    <div class="fg"><label class="fl">種別</label>
+      <select class="fi" id="nfType"><option>ホテル</option><option>民宿・ゲストハウス</option><option>飲食店</option><option>観光施設</option><option>コンビニ・商業施設</option><option>その他</option></select>
+    </div>
+    <div class="fg"><label class="fl">目標設置数</label><input class="fi" type="number" id="nfTarget" value="20"></div>
+    <div class="fg"><label class="fl">住所</label><input class="fi" id="nfAddr" placeholder="沖縄県..."></div>
+    <button class="btn btn-primary" style="width:100%" onclick="addFacility()">追加する</button>
+  </div>
+</div>
+<div class="overlay" id="addSchedModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('addSchedModal')">✕</button>
+    <div class="modal-title">スケジュール追加</div>
+    <div class="fg"><label class="fl">担当者</label><select class="fi" id="nsPerson"></select></div>
+    <div class="fg"><label class="fl">配達日</label><input class="fi" type="date" id="nsDate"></div>
+    <div class="fg"><label class="fl">担当エリア</label><select class="fi" id="nsArea"></select></div>
+    <div class="fg"><label class="fl">メモ</label><input class="fi" id="nsNote" placeholder="補充ルートなど"></div>
+    <button class="btn btn-primary" style="width:100%" onclick="addSchedule()">追加する</button>
+  </div>
+</div>
+<div class="overlay" id="assignModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('assignModal')">✕</button>
+    <div class="modal-title">🚗 施設を緊急割り当て</div>
+    <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:13px;font-weight:600" id="assignFacName"></div>
+    <div class="fg"><label class="fl">担当者を選択</label><select class="fi" id="assignPerson"></select></div>
+    <div class="fg"><label class="fl">希望日</label><input class="fi" type="date" id="assignDate"></div>
+    <div class="fg"><label class="fl">指示メモ</label><textarea class="fi" id="assignNote" placeholder="急ぎで補充をお願いします..."></textarea></div>
+    <button class="btn btn-coral" style="width:100%" onclick="doAssign()">📤 割り当てる</button>
+  </div>
+</div>
+<div class="overlay" id="deliveryModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('deliveryModal')">✕</button>
+    <div class="modal-title">📦 配布記録</div>
+    <input type="hidden" id="dmFacId">
+    <div style="background:var(--bg3);border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:14px;font-weight:700" id="dmFacName"></div>
+    <div class="meter-display" style="margin-bottom:12px">
+      <div class="meter-row"><span class="mkey">目標配布数</span><span class="mval" id="dmTarget">--</span></div>
+    </div>
+    <div class="fg"><label class="fl">今回配布数</label><input class="fi" type="number" id="dmCount" placeholder="0"></div>
+    <div class="fg"><label class="fl">到着時メーター(km)　任意</label><input class="fi" type="number" id="dmMeter" placeholder="例：45310"></div>
+    <div class="upzone" onclick="document.getElementById('dmPhoto').click()" style="margin-bottom:10px">
+      <input type="file" id="dmPhoto" accept="image/*" onchange="handleDmPhoto(this)">
+      <div style="font-size:24px">📸</div><div>到着時メーター写真（任意）</div>
+    </div>
+    <div id="dmPhotoPreview"></div>
+    <button class="btn btn-coral" style="width:100%;margin-top:10px" onclick="saveDelivery()">✓ 配布記録を保存</button>
+  </div>
+</div>
+<div class="overlay" id="photoViewModal">
+  <div class="modal" style="max-width:340px">
+    <button class="modal-close" onclick="closeModal('photoViewModal')">✕</button>
+    <div class="modal-title" id="pvTitle">写真</div>
+    <div id="pvContent"></div>
+  </div>
+</div>
+<div class="overlay" id="xlsxModal">
+  <div class="modal" style="max-width:600px">
+    <button class="modal-close" onclick="closeModal('xlsxModal')">✕</button>
+    <div class="modal-title">📥 Excelデータ取込</div>
+    <div id="xlsxSummary" style="margin-bottom:14px"></div>
+    <div id="xlsxMapping" style="margin-bottom:14px"></div>
+    <div style="font-size:11px;color:var(--dim);margin-bottom:6px">プレビュー（最大8件）</div>
+    <div style="overflow-x:auto;margin-bottom:14px"><table id="xlsxPreview" style="width:100%;border-collapse:collapse;font-size:11px"></table></div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;margin-bottom:12px"><input type="checkbox" id="xlsxAppend" checked>既存データに追加（外すと全置換）</label>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" style="flex:1" onclick="applyXlsx()">✓ 取込む</button>
+      <button class="btn btn-ghost" onclick="closeModal('xlsxModal')">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+'use strict';
+const ADMIN_PIN='1234';
+const AREA_COLORS=['#1a7fe8','#00c9a7','#ffd23f','#9b59b6','#ff4757','#f39c12'];
+let AREAS=[
+  {name:'那覇・南部',color:'#1a7fe8',focus:true},
+  {name:'中部（北谷〜沖縄市）',color:'#00c9a7',focus:true},
+  {name:'恩納村・読谷',color:'#ffd23f',focus:true},
+  {name:'名護・北部',color:'#9b59b6',focus:false},
+  {name:'離島・その他',color:'#ff4757',focus:false},
+];
+let persons=[
+  {id:1,name:'田中 太郎',area:'那覇・南部',car:'沖縄300あ1234',fuel:12,pin:'1111'},
+  {id:2,name:'山田 花子',area:'中部（北谷〜沖縄市）',car:'沖縄300い5678',fuel:14,pin:'2222'},
+  {id:3,name:'佐藤 次郎',area:'恩納村・読谷',car:'沖縄300う9012',fuel:11,pin:'3333'},
+];
+let fId=276;
+let facilities=[{"id":1,"name":"GRGホテル","area":"那覇・南部","type":"ホテル","target":20,"status":"ng","lastDelivery":"","address":""},{"id":2,"name":"ホテルグランビュー沖縄","area":"那覇・南部","type":"ホテル","target":126,"status":"ng","lastDelivery":"","address":"那覇市赤嶺2-3-2"},{"id":3,"name":"チャビラホテル那覇","area":"那覇・南部","type":"ホテル","target":82,"status":"ng","lastDelivery":"","address":"那覇市金城5-5-11-1"},{"id":4,"name":"ワイズイン那覇小禄駅前","area":"那覇・南部","type":"ホテル","target":85,"status":"ng","lastDelivery":"","address":"那覇市金城5-9-1"},{"id":5,"name":"ホテルパークスタジアム那覇","area":"那覇・南部","type":"ホテル","target":98,"status":"ng","lastDelivery":"","address":"那覇市山下町10-2"},{"id":6,"name":"HOTEL OROX（ホテルオロックス）","area":"那覇・南部","type":"ホテル","target":63,"status":"ng","lastDelivery":"","address":"那覇市小禄1-1-1"},{"id":7,"name":"東急ステイ沖縄那覇","area":"那覇・南部","type":"ホテル","target":199,"status":"ng","lastDelivery":"","address":"那覇市壺川3-2-1"},{"id":8,"name":"メルキュールホテル沖縄那覇","area":"那覇・南部","type":"ホテル","target":260,"status":"ng","lastDelivery":"","address":"那覇市壺川3-3−19"},{"id":9,"name":"ダイワロイネットホテル那覇おもろまちＰＲＥＭＩＥＲ","area":"那覇・南部","type":"ホテル","target":160,"status":"ng","lastDelivery":"","address":"那覇市おもろまち4-2-2-13"},{"id":10,"name":"ダイワロイネットホテル那覇おもろまち","area":"那覇・南部","type":"ホテル","target":243,"status":"ng","lastDelivery":"","address":"那覇市おもろまち1-1-12"},{"id":11,"name":"東横INN那覇おもろまち駅前","area":"那覇・南部","type":"ホテル","target":150,"status":"ng","lastDelivery":"","address":"那覇市おもろまち1-6-6"},{"id":12,"name":"東横INN那覇新都心おもろまち","area":"那覇・南部","type":"ホテル","target":204,"status":"ng","lastDelivery":"","address":"那覇市おもろまち1-2-27"},{"id":13,"name":"NAHA新都心HOTEL","area":"那覇・南部","type":"ホテル","target":47,"status":"ng","lastDelivery":"","address":"那覇市おもろまち1-2-25"},{"id":14,"name":"アルモントホテル那覇おもろまち","area":"那覇・南部","type":"ホテル","target":207,"status":"ng","lastDelivery":"","address":"那覇市おもろまち4-3-8"},{"id":15,"name":"リブレガーデンホテル","area":"那覇・南部","type":"ホテル","target":113,"status":"ng","lastDelivery":"","address":"那覇市おもろまち4-17-27"},{"id":16,"name":"スーパーホテル那覇・新都心","area":"那覇・南部","type":"ホテル","target":90,"status":"ng","lastDelivery":"","address":"那覇市おもろまち4-16-27"},{"id":17,"name":"ザ・ナハテラス","area":"那覇・南部","type":"ホテル","target":145,"status":"ng","lastDelivery":"","address":"那覇市おもろまち2-14-1"},{"id":18,"name":"ホテルストーク 那覇新都心","area":"那覇・南部","type":"ホテル","target":130,"status":"ng","lastDelivery":"","address":"那覇市おもろまち2-6-40"},{"id":19,"name":"沖縄サンプラザホテル","area":"那覇・南部","type":"ホテル","target":95,"status":"ng","lastDelivery":"","address":"那覇市安里138"},{"id":20,"name":"ヒューイットリゾート那覇","area":"那覇・南部","type":"ホテル","target":331,"status":"ng","lastDelivery":"","address":"那覇市安里2-5-16"},{"id":21,"name":"ホテル オーシャン那覇国際通り","area":"那覇・南部","type":"ホテル","target":93,"status":"ng","lastDelivery":"","address":"那覇市安里2-4-8"},{"id":22,"name":"ホテル サン・クイーン","area":"那覇・南部","type":"ホテル","target":60,"status":"ng","lastDelivery":"","address":"那覇市安里2-4-2-1"},{"id":23,"name":"ダイワロイネットホテル那覇国際通り","area":"那覇・南部","type":"ホテル","target":261,"status":"ng","lastDelivery":"","address":"那覇市安里2-1-1"},{"id":24,"name":"南西観光ホテル","area":"那覇・南部","type":"ホテル","target":131,"status":"ng","lastDelivery":"","address":"那覇市牧志3-13-23"},{"id":25,"name":"アベストＣＵＢＥ那覇国際通り","area":"那覇・南部","type":"ホテル","target":76,"status":"ng","lastDelivery":"","address":"那覇市牧志3-13-17"},{"id":26,"name":"ホテルパームロイヤルNAHA","area":"那覇・南部","type":"ホテル","target":170,"status":"ng","lastDelivery":"","address":"那覇市牧志3-9-10"},{"id":27,"name":"ハイアット リージェンシー 那覇 沖縄","area":"那覇・南部","type":"ホテル","target":294,"status":"ng","lastDelivery":"","address":"那覇市牧志3-6-20"},{"id":28,"name":"ホテルアザット　那覇","area":"那覇・南部","type":"ホテル","target":172,"status":"ng","lastDelivery":"","address":"那覇市安里2-8-8"},{"id":29,"name":"オリオンホテル那覇","area":"那覇・南部","type":"ホテル","target":200,"status":"ng","lastDelivery":"","address":"那覇市安里1-2-21"},{"id":30,"name":"沖縄逸の彩ホテル","area":"那覇・南部","type":"ホテル","target":200,"status":"ng","lastDelivery":"","address":"那覇市牧志3-18-33"},{"id":31,"name":"JR九州ホテル ブラッサム那覇","area":"那覇・南部","type":"ホテル","target":218,"status":"ng","lastDelivery":"","address":"那覇市牧志2-16-1"},{"id":32,"name":"ホテルWBFアートステイ那覇","area":"那覇・南部","type":"ホテル","target":69,"status":"ng","lastDelivery":"","address":"那覇市牧志1-3-43"},{"id":33,"name":"ホテル ストレータ 那覇","area":"那覇・南部","type":"ホテル","target":221,"status":"ng","lastDelivery":"","address":"那覇市牧志1-19-8"},{"id":34,"name":"東横INN那覇国際通り美栄橋駅","area":"那覇・南部","type":"ホテル","target":94,"status":"ng","lastDelivery":"","address":"那覇市牧志1-20-1"},{"id":35,"name":"エナジックホテル山市","area":"那覇・南部","type":"ホテル","target":32,"status":"ng","lastDelivery":"","address":"那覇市牧志2-16-36"},{"id":36,"name":"ネストホテル那覇久茂地","area":"那覇・南部","type":"ホテル","target":120,"status":"ng","lastDelivery":"","address":"那覇市久茂地2-22-5"},{"id":37,"name":"リッチモンドホテル那覇久茂地","area":"那覇・南部","type":"ホテル","target":225,"status":"ng","lastDelivery":"","address":"那覇市久茂地2-23-12"},{"id":38,"name":"ホテル山の内","area":"那覇・南部","type":"ホテル","target":63,"status":"ng","lastDelivery":"","address":"那覇市牧志1-3-55"},{"id":39,"name":"シーサー・イン那覇","area":"那覇・南部","type":"ホテル","target":55,"status":"ng","lastDelivery":"","address":"那覇市牧志1-3-59"},{"id":40,"name":"ホテルJALシティ那覇","area":"那覇・南部","type":"ホテル","target":302,"status":"ng","lastDelivery":"","address":"那覇市牧志1-3−70"},{"id":41,"name":"ホテルランタナ那覇国際通り","area":"那覇・南部","type":"ホテル","target":162,"status":"ng","lastDelivery":"","address":"那覇市松尾2-8-1"},{"id":42,"name":"ホテル コレクティブ","area":"那覇・南部","type":"ホテル","target":260,"status":"ng","lastDelivery":"","address":"那覇市松尾2-5-7"},{"id":43,"name":"かりゆしコンドミニアムリゾート那覇　龍神ホテル浮島","area":"那覇・南部","type":"ホテル","target":53,"status":"ng","lastDelivery":"","address":"那覇市松尾2-5-36"},{"id":44,"name":"国際タウンズイン","area":"那覇・南部","type":"ホテル","target":27,"status":"ng","lastDelivery":"","address":"那覇市松尾2-12-7"},{"id":45,"name":"プリンススマートイン那覇","area":"那覇・南部","type":"ホテル","target":149,"status":"ng","lastDelivery":"","address":"那覇市松尾2-4-13"},{"id":46,"name":"Southwest Grand Hotel","area":"那覇・南部","type":"ホテル","target":88,"status":"ng","lastDelivery":"","address":"那覇市久茂地3-29-52"},{"id":47,"name":"ホテル国際プラザ","area":"那覇・南部","type":"ホテル","target":58,"status":"ng","lastDelivery":"","address":"那覇市松尾1-4-10"},{"id":48,"name":"HOTEL　NAHA　CITY kokusai","area":"那覇・南部","type":"ホテル","target":74,"status":"ng","lastDelivery":"","address":"那覇市松尾1-4-5"},{"id":49,"name":"ホテルグレイスリー那覇","area":"那覇・南部","type":"ホテル","target":198,"status":"ng","lastDelivery":"","address":"那覇市松尾1-3-6"},{"id":50,"name":"ホテルアベスト那覇国際通り","area":"那覇・南部","type":"ホテル","target":107,"status":"ng","lastDelivery":"","address":"那覇市久茂地3-1−10"},{"id":51,"name":"ホテルロコアナハ","area":"那覇・南部","type":"ホテル","target":222,"status":"ng","lastDelivery":"","address":"那覇市松尾 1-1-2"},{"id":52,"name":"ホテルグランコンソルト那覇","area":"那覇・南部","type":"ホテル","target":151,"status":"ng","lastDelivery":"","address":"那覇市松尾1-18-25"},{"id":53,"name":"CABIN & HOTEL CONSTANT NAHA","area":"那覇・南部","type":"ホテル","target":109,"status":"ng","lastDelivery":"","address":"那覇市壺屋1-1-3"},{"id":54,"name":"アルモントホテル那覇県庁前","area":"那覇・南部","type":"ホテル","target":150,"status":"ng","lastDelivery":"","address":"那覇市久茂地1-3-5"},{"id":55,"name":"コンフォートホテル那覇県庁前","area":"那覇・南部","type":"ホテル","target":132,"status":"ng","lastDelivery":"","address":"那覇市久茂地1-3-11"},{"id":56,"name":"LCH.Izumizaki 県庁前","area":"那覇・南部","type":"ホテル","target":58,"status":"ng","lastDelivery":"","address":"那覇市泉崎1-11-8"},{"id":57,"name":"沖縄かりゆしリゾートEXES那覇","area":"那覇・南部","type":"ホテル","target":67,"status":"ng","lastDelivery":"","address":"沖縄県那覇市泉崎1‐11‐5"},{"id":58,"name":"ダイワロイネットホテル沖縄県庁前","area":"那覇・南部","type":"ホテル","target":240,"status":"ng","lastDelivery":"","address":"那覇市泉崎1-11-2"},{"id":59,"name":"ホテルサン沖縄","area":"那覇・南部","type":"ホテル","target":200,"status":"ng","lastDelivery":"","address":"那覇市久茂地1-5−15"},{"id":60,"name":"ホテルエアウェイ","area":"那覇・南部","type":"ホテル","target":81,"status":"ng","lastDelivery":"","address":"那覇市久茂地2-14-5"},{"id":61,"name":"ホテルサンパレス球陽館","area":"那覇・南部","type":"ホテル","target":72,"status":"ng","lastDelivery":"","address":"那覇市久茂地2-5-1"},{"id":62,"name":"沖縄ハーバービューホテル","area":"那覇・南部","type":"ホテル","target":352,"status":"ng","lastDelivery":"","address":"那覇市泉崎2-46"},{"id":63,"name":"リーガロイヤルグラン沖縄","area":"那覇・南部","type":"ホテル","target":157,"status":"ng","lastDelivery":"","address":"那覇市旭町1-9"},{"id":64,"name":"那覇 東急REIホテル","area":"那覇・南部","type":"ホテル","target":215,"status":"ng","lastDelivery":"","address":"那覇市旭町116-37"},{"id":65,"name":"ホテルリソルトリニティ那覇","area":"那覇・南部","type":"ホテル","target":220,"status":"ng","lastDelivery":"","address":"那覇市旭町7"},{"id":66,"name":"ダブルツリーbyヒルトン那覇","area":"那覇・南部","type":"ホテル","target":225,"status":"ng","lastDelivery":"","address":"那覇市東町3-15"},{"id":67,"name":"ホテル ユクエスタ旭橋","area":"那覇・南部","type":"ホテル","target":72,"status":"ng","lastDelivery":"","address":"那覇市東町5-19"},{"id":68,"name":"東横INN那覇旭橋駅前","area":"那覇・南部","type":"ホテル","target":283,"status":"ng","lastDelivery":"","address":"那覇市久米2-1-20"},{"id":69,"name":"沖縄ナハナ・ホテル＆スパ","area":"那覇・南部","type":"ホテル","target":200,"status":"ng","lastDelivery":"","address":"那覇市久米2-1-5"},{"id":70,"name":"PROSTYLE旅館 那覇県庁前","area":"那覇・南部","type":"ホテル","target":48,"status":"ng","lastDelivery":"","address":"那覇市久米2-2-1"},{"id":71,"name":"スマイルホテル沖縄那覇","area":"那覇・南部","type":"ホテル","target":129,"status":"ng","lastDelivery":"","address":"那覇市久米2-32-1"},{"id":72,"name":"ホテルリブマックスBUDGET那覇","area":"那覇・南部","type":"ホテル","target":75,"status":"ng","lastDelivery":"","address":"那覇市久米2-2-7"},{"id":73,"name":"西鉄リゾートイン那覇","area":"那覇・南部","type":"ホテル","target":250,"status":"ng","lastDelivery":"","address":"那覇市久米2-3-13"},{"id":74,"name":"OMO5沖縄那覇 by 星野リゾート","area":"那覇・南部","type":"ホテル","target":190,"status":"ng","lastDelivery":"","address":"那覇市松山1-3-16"},{"id":75,"name":"Prince Smart Inn Naha","area":"那覇・南部","type":"ホテル","target":149,"status":"ng","lastDelivery":"","address":"那覇市松山2-4-13"},{"id":76,"name":"コンフォートイン那覇泊港","area":"那覇・南部","type":"ホテル","target":117,"status":"ng","lastDelivery":"","address":"那覇市前島3-1‐4"},{"id":77,"name":"ホテルアクアチッタナハ","area":"那覇・南部","type":"ホテル","target":231,"status":"ng","lastDelivery":"","address":"那覇市前島3-2-20"},{"id":78,"name":"RJホテル那覇","area":"那覇・南部","type":"ホテル","target":60,"status":"ng","lastDelivery":"","address":"那覇市前島3-10-21"},{"id":79,"name":"ﾎﾃﾙ　ﾋﾟｰｽ　アイランド那覇","area":"那覇・南部","type":"ホテル","target":90,"status":"ng","lastDelivery":"","address":"那覇市前島3-23-1"},{"id":80,"name":"スマイルホテル沖縄那覇","area":"那覇・南部","type":"ホテル","target":128,"status":"ng","lastDelivery":"","address":"那覇市前島3-24-1"},{"id":81,"name":"ホテルリゾネックス那覇","area":"那覇・南部","type":"ホテル","target":82,"status":"ng","lastDelivery":"","address":"那覇市前島3-11-1"},{"id":82,"name":"ホテルユクエスタ東町","area":"那覇・南部","type":"ホテル","target":54,"status":"ng","lastDelivery":"","address":"沖縄県那覇市東町７−２２"},{"id":83,"name":"GRGホテル那覇東町","area":"那覇・南部","type":"ホテル","target":139,"status":"ng","lastDelivery":"","address":"那覇市東町6-16"},{"id":84,"name":"琉球サンロイヤルホテル","area":"那覇・南部","type":"ホテル","target":135,"status":"ng","lastDelivery":"","address":"那覇市東町6-20"},{"id":85,"name":"スマイルホテル那覇シティリゾート","area":"那覇・南部","type":"ホテル","target":227,"status":"ng","lastDelivery":"","address":"那覇市久米2-32-1"},{"id":86,"name":"ロコイン松山","area":"那覇・南部","type":"ホテル","target":79,"status":"ng","lastDelivery":"","address":"那覇市松山1-14-5"},{"id":87,"name":"ロコイン沖縄","area":"那覇・南部","type":"ホテル","target":128,"status":"ng","lastDelivery":"","address":"那覇市松山1-27-11"},{"id":88,"name":"Hotel Cocktail Stay Naha","area":"那覇・南部","type":"ホテル","target":100,"status":"ng","lastDelivery":"","address":"那覇市松山1-29-7"},{"id":89,"name":"ホテル タイラ","area":"那覇・南部","type":"ホテル","target":95,"status":"ng","lastDelivery":"","address":"那覇市松山1-14−13"},{"id":90,"name":"ホテルリブマックスBUDGET那覇松山","area":"那覇・南部","type":"ホテル","target":42,"status":"ng","lastDelivery":"","address":"那覇市松山2-12-5"},{"id":91,"name":"ホテルブライオン那覇","area":"那覇・南部","type":"ホテル","target":134,"status":"ng","lastDelivery":"","address":"那覇市松山2-15-13"},{"id":92,"name":"ソルヴィータホテル那覇","area":"那覇・南部","type":"ホテル","target":200,"status":"ng","lastDelivery":"","address":"那覇市松山2-17-17"},{"id":93,"name":"エスティネートホテル那覇","area":"那覇・南部","type":"ホテル","target":79,"status":"ng","lastDelivery":"","address":"那覇市松山2-3-11"},{"id":94,"name":"GRGホテル那覇","area":"那覇・南部","type":"ホテル","target":159,"status":"ng","lastDelivery":"","address":"那覇市松山2-16-10"},{"id":95,"name":"グリーンリッチホテル那覇","area":"那覇・南部","type":"ホテル","target":165,"status":"ng","lastDelivery":"","address":"那覇市松山町2-15-1"},{"id":96,"name":"ホテルルートイン那覇泊港","area":"那覇・南部","type":"ホテル","target":208,"status":"ng","lastDelivery":"","address":"那覇市前島2-12-5"},{"id":97,"name":"ホテルアンテルーム那覇","area":"那覇・南部","type":"ホテル","target":126,"status":"ng","lastDelivery":"","address":"那覇市前島3-27-11"},{"id":98,"name":"ホテルピースランド久米","area":"那覇・南部","type":"ホテル","target":40,"status":"ng","lastDelivery":"","address":"那覇市前島3-23"},{"id":99,"name":"沖縄オリエンタルホテル","area":"那覇・南部","type":"ホテル","target":51,"status":"ng","lastDelivery":"","address":"那覇市前島3-13-16"},{"id":100,"name":"ロワジールホテル 那覇","area":"那覇・南部","type":"ホテル","target":437,"status":"ng","lastDelivery":"","address":"那覇市西3-2-1"},{"id":101,"name":"レンブラントスタイル那覇","area":"那覇・南部","type":"ホテル","target":146,"status":"ng","lastDelivery":"","address":"那覇市西2-24-3"},{"id":102,"name":"ホテル・アンドルームス那覇ポート","area":"那覇・南部","type":"ホテル","target":237,"status":"ng","lastDelivery":"","address":"那覇市西2-23-1"},{"id":103,"name":"ルートイン グランティア那覇","area":"那覇・南部","type":"ホテル","target":120,"status":"ng","lastDelivery":"","address":"那覇市西2‐25‐12"},{"id":104,"name":"パシフィックホテル沖縄","area":"那覇・南部","type":"ホテル","target":383,"status":"ng","lastDelivery":"","address":"那覇市西3-6-1"},{"id":105,"name":"那覇ウエストイン","area":"那覇・南部","type":"ホテル","target":150,"status":"ng","lastDelivery":"","address":"那覇市西1-16-7"},{"id":106,"name":"ホテル・トリフィート那覇旭橋","area":"那覇・南部","type":"ホテル","target":136,"status":"ng","lastDelivery":"","address":"那覇市西1-11-19"},{"id":107,"name":"ティサージホテル那覇","area":"那覇・南部","type":"ホテル","target":132,"status":"ng","lastDelivery":"","address":"那覇市西2-14-1"},{"id":108,"name":"HOTEL SANSUI NAHA 琉球温泉 波之上の湯","area":"那覇・南部","type":"ホテル","target":278,"status":"ng","lastDelivery":"","address":"那覇市辻2-25-1"},{"id":109,"name":"那覇ビーチサイドホテル","area":"那覇・南部","type":"ホテル","target":161,"status":"ng","lastDelivery":"","address":"那覇市辻3-2-36"},{"id":110,"name":"ダブルツリーbyヒルトン那覇首里城","area":"那覇・南部","type":"ホテル","target":333,"status":"ng","lastDelivery":"","address":"那覇市首里山川町1-132-1"},{"id":111,"name":"ノボテル沖縄那覇","area":"那覇・南部","type":"ホテル","target":328,"status":"ng","lastDelivery":"","address":"那覇市松川40"},{"id":112,"name":"琉球温泉 瀬長島ホテル","area":"那覇・南部","type":"ホテル","target":100,"status":"ng","lastDelivery":"","address":"豊見城市字瀬長174-5"},{"id":113,"name":"ストーリーライン瀬長島","area":"那覇・南部","type":"ホテル","target":101,"status":"ng","lastDelivery":"","address":"豊見城市瀬長155-1"},{"id":114,"name":"ホテルグランビューガーデン沖縄","area":"那覇・南部","type":"ホテル","target":168,"status":"ng","lastDelivery":"","address":"豊見城市豊崎3-82"},{"id":115,"name":"サザンビーチホテル＆リゾート沖縄","area":"那覇・南部","type":"ホテル","target":448,"status":"ng","lastDelivery":"","address":"糸満市西崎町1-6-1"},{"id":116,"name":"琉球ホテル&リゾート 名城ビーチ","area":"那覇・南部","type":"ホテル","target":443,"status":"ng","lastDelivery":"","address":"糸満市名城963"},{"id":117,"name":"ユインチホテル南城","area":"那覇・南部","type":"ホテル","target":147,"status":"ng","lastDelivery":"","address":"南城市伊敷新里1688番地"},{"id":118,"name":"サザンリンクス　リゾート","area":"那覇・南部","type":"ホテル","target":52,"status":"ng","lastDelivery":"","address":"島尻郡八重瀬領なしろ６９７"},{"id":119,"name":"ホテルアラクージュ オキナワ","area":"中部（北谷〜沖縄市）","type":"ホテル","target":120,"status":"ng","lastDelivery":"","address":"浦添市港川512-55"},{"id":120,"name":"ムーンオーシャン宜野湾 ホテル＆レジデンス","area":"中部（北谷〜沖縄市）","type":"ホテル","target":177,"status":"ng","lastDelivery":"","address":"宜野湾市宇地泊558-8"},{"id":121,"name":"沖縄プリンスホテル オーシャンビューぎのわん","area":"中部（北谷〜沖縄市）","type":"ホテル","target":340,"status":"ng","lastDelivery":"","address":"宜野湾市真志喜3丁目28-1"},{"id":122,"name":"ラグナガーデンホテル","area":"中部（北谷〜沖縄市）","type":"ホテル","target":303,"status":"ng","lastDelivery":"","address":"宜野湾市真志喜4-1-1"},{"id":123,"name":"ザ・グランドホテルギノワン","area":"中部（北谷〜沖縄市）","type":"ホテル","target":82,"status":"ng","lastDelivery":"","address":"宜野湾市大山3-5-1"},{"id":124,"name":"OKINAWA CITY HOTEL(沖縄シティホテル)","area":"那覇・南部","type":"ホテル","target":28,"status":"ng","lastDelivery":"","address":"沖縄市胡屋1-8−12"},{"id":125,"name":"ホテルニューセンチュリー","area":"那覇・南部","type":"ホテル","target":67,"status":"ng","lastDelivery":"","address":"沖縄市胡屋2-1-43"},{"id":126,"name":"サンライズ観光ホテル","area":"那覇・南部","type":"ホテル","target":29,"status":"ng","lastDelivery":"","address":"沖縄市胡屋2-1−46"},{"id":127,"name":"クラウンホテルアネックス","area":"那覇・南部","type":"ホテル","target":29,"status":"ng","lastDelivery":"","address":"沖縄市胡屋7-5-12"},{"id":128,"name":"レフ沖縄アリーナ byベッセルホテルズ","area":"那覇・南部","type":"ホテル","target":150,"status":"ng","lastDelivery":"","address":"沖縄市字諸見里1766"},{"id":129,"name":"ホテルコザ","area":"那覇・南部","type":"ホテル","target":81,"status":"ng","lastDelivery":"","address":"沖縄市上地2-1-29"},{"id":130,"name":"HOTEL Gran Arena(ホテルグランアリーナ)","area":"那覇・南部","type":"ホテル","target":31,"status":"ng","lastDelivery":"","address":"沖縄市上地2-17-1"},{"id":131,"name":"クラウンホテル沖縄","area":"那覇・南部","type":"ホテル","target":37,"status":"ng","lastDelivery":"","address":"沖縄市上地4-1-51"},{"id":132,"name":"デイゴホテル","area":"那覇・南部","type":"ホテル","target":54,"status":"ng","lastDelivery":"","address":"沖縄市中央3-4-2"},{"id":133,"name":"ライカムクリスタルホテル","area":"那覇・南部","type":"ホテル","target":47,"status":"ng","lastDelivery":"","address":"沖縄市与儀2-19-11"},{"id":134,"name":"オキナワ グランメールリゾート","area":"那覇・南部","type":"ホテル","target":300,"status":"ng","lastDelivery":"","address":"沖縄市与儀2-8-1"},{"id":135,"name":"ジ･ウザテラス ビーチクラブヴィラズ","area":"中部（北谷〜沖縄市）","type":"ホテル","target":48,"status":"ng","lastDelivery":"","address":"中頭郡読谷村宇座630-1"},{"id":136,"name":"グランドメルキュール沖縄残波岬リゾート","area":"中部（北谷〜沖縄市）","type":"ホテル","target":475,"status":"ng","lastDelivery":"","address":"中頭郡読谷村宇座1575"},{"id":137,"name":"星のや沖縄","area":"中部（北谷〜沖縄市）","type":"ホテル","target":100,"status":"ng","lastDelivery":"","address":"中頭郡読谷村儀間474"},{"id":138,"name":"Royal Hotel 沖縄残波岬","area":"中部（北谷〜沖縄市）","type":"ホテル","target":465,"status":"ng","lastDelivery":"","address":"中頭郡読谷村字宇座1575"},{"id":139,"name":"ホテル日航アリビラ －ヨミタンリゾート沖縄－","area":"中部（北谷〜沖縄市）","type":"ホテル","target":397,"status":"ng","lastDelivery":"","address":"中頭郡読谷村字儀間600"},{"id":140,"name":"ローヤルホテル&レストラン","area":"中部（北谷〜沖縄市）","type":"ホテル","target":40,"status":"ng","lastDelivery":"","address":"中頭郡読谷村楚辺1315"},{"id":141,"name":"Ｓｅａ　Ｓｉｄｅ　Ｈｏｔｅｌ　Ｔｈｅ　Ｂｅａｃｈ","area":"中部（北谷〜沖縄市）","type":"ホテル","target":29,"status":"ng","lastDelivery":"","address":"中頭郡北谷町宮城3-134"},{"id":142,"name":"レクー沖縄北谷スパ＆リゾート","area":"中部（北谷〜沖縄市）","type":"ホテル","target":229,"status":"ng","lastDelivery":"","address":"中頭郡北谷町字美浜34-2"},{"id":143,"name":"ベッセルホテルカンパーナ沖縄","area":"中部（北谷〜沖縄市）","type":"ホテル","target":324,"status":"ng","lastDelivery":"","address":"中頭郡北谷町字美浜9-22"},{"id":144,"name":"テラスガーデン美浜リゾート","area":"中部（北谷〜沖縄市）","type":"ホテル","target":15,"status":"ng","lastDelivery":"","address":"中頭郡北谷町美浜2-5-18"},{"id":145,"name":"ラ・ジェント・ホテル沖縄北谷","area":"中部（北谷〜沖縄市）","type":"ホテル","target":188,"status":"ng","lastDelivery":"","address":"中頭郡北谷町美浜25-3"},{"id":146,"name":"ヒルトン沖縄北谷リゾート","area":"中部（北谷〜沖縄市）","type":"ホテル","target":346,"status":"ng","lastDelivery":"","address":"中頭郡北谷町美浜40-1"},{"id":147,"name":"ダブルツリーbyヒルトン沖縄北谷リゾート","area":"中部（北谷〜沖縄市）","type":"ホテル","target":160,"status":"ng","lastDelivery":"","address":"中頭郡北谷町美浜43"},{"id":148,"name":"ザ・ビーチタワー沖縄","area":"中部（北谷〜沖縄市）","type":"ホテル","target":280,"status":"ng","lastDelivery":"","address":"中頭郡北谷町美浜8-6"},{"id":149,"name":"ビーチフロントタワーミハマ","area":"中部（北谷〜沖縄市）","type":"ホテル","target":36,"status":"ng","lastDelivery":"","address":"中頭郡北谷町北谷1-13−6"},{"id":150,"name":"EMウェルネス 暮らしの発酵ライフスタイルリゾート","area":"中部（北谷〜沖縄市）","type":"ホテル","target":211,"status":"ng","lastDelivery":"","address":"中頭郡北中城村喜舎場1478"},{"id":151,"name":"ジ･アッタテラス クラブタワーズ","area":"名護・北部","type":"ホテル","target":78,"status":"ng","lastDelivery":"","address":"国頭郡恩納村安富祖1079"},{"id":152,"name":"みゆきハマバルリゾート","area":"名護・北部","type":"ホテル","target":60,"status":"ng","lastDelivery":"","address":"国頭郡恩納村安富祖1314"},{"id":153,"name":"ホテルみゆきビーチ","area":"名護・北部","type":"ホテル","target":98,"status":"ng","lastDelivery":"","address":"国頭郡恩納村安富祖1583−2"},{"id":154,"name":"ルネッサンス リゾート オキナワ","area":"名護・北部","type":"ホテル","target":377,"status":"ng","lastDelivery":"","address":"国頭郡恩納村山田3425-2"},{"id":155,"name":"UMITO PLAGE The Atta Okinawa","area":"名護・北部","type":"ホテル","target":9,"status":"ng","lastDelivery":"","address":"国頭郡恩納村字安富祖1894-1"},{"id":156,"name":"ＨｏｍｍＳｔａｙＹｕｍｉｈａＯｋｉｎａｗａ","area":"名護・北部","type":"ホテル","target":17,"status":"ng","lastDelivery":"","address":"国頭郡恩納村字山田2455-1"},{"id":157,"name":"ザ・ムーンビーチ ミュージアムリゾート","area":"名護・北部","type":"ホテル","target":255,"status":"ng","lastDelivery":"","address":"国頭郡恩納村字前兼久1203"},{"id":158,"name":"リザンシーパークホテル谷茶ベイ","area":"名護・北部","type":"ホテル","target":826,"status":"ng","lastDelivery":"","address":"国頭郡恩納村字谷茶1496"},{"id":159,"name":"ホテルサンセットヒル","area":"名護・北部","type":"ホテル","target":61,"status":"ng","lastDelivery":"","address":"国頭郡恩納村字仲泊1327-3"},{"id":160,"name":"かねひで恩納マリンビューパレス","area":"名護・北部","type":"ホテル","target":100,"status":"ng","lastDelivery":"","address":"国頭郡恩納村字前兼久497-3"},{"id":161,"name":"ホテルモントレ沖縄 スパ＆リゾート","area":"名護・北部","type":"ホテル","target":339,"status":"ng","lastDelivery":"","address":"国頭郡恩納村字冨着1550-1"},{"id":162,"name":"シェラトン沖縄サンマリーナリゾート","area":"名護・北部","type":"ホテル","target":246,"status":"ng","lastDelivery":"","address":"国頭郡恩納村字冨着66-1"},{"id":163,"name":"AQUASENSE Hotel & Resort","area":"名護・北部","type":"ホテル","target":77,"status":"ng","lastDelivery":"","address":"国頭郡恩納村字冨着黒崎原86-1"},{"id":164,"name":"カフー リゾート フチャク コンド・ホテル","area":"名護・北部","type":"ホテル","target":333,"status":"ng","lastDelivery":"","address":"国頭郡恩納村字冨着志利福地原246-1"},{"id":165,"name":"星野リゾート　BEB5沖縄瀬良垣","area":"名護・北部","type":"ホテル","target":105,"status":"ng","lastDelivery":"","address":"国頭郡恩納村瀬良垣1860-4"},{"id":166,"name":"ANAインターコンチネンタル万座ビーチリゾート","area":"那覇・南部","type":"ホテル","target":400,"status":"ng","lastDelivery":"","address":"国頭郡恩納村瀬良垣2260"},{"id":167,"name":"オリエンタルヒルズ沖縄","area":"名護・北部","type":"ホテル","target":14,"status":"ng","lastDelivery":"","address":"国頭郡恩納村瀬良垣79-1"},{"id":168,"name":"HIYORI オーシャンリゾート 沖縄","area":"名護・北部","type":"ホテル","target":203,"status":"ng","lastDelivery":"","address":"国頭郡恩納村仲泊1055-1"},{"id":169,"name":"ハイアットリージェンシー瀬良垣アイランド沖縄","area":"名護・北部","type":"ホテル","target":320,"status":"ng","lastDelivery":"","address":"国頭郡恩納村瀬良垣1108"},{"id":170,"name":"ロワジールリビングスイーツ瀬良垣","area":"那覇・南部","type":"ホテル","target":105,"status":"ng","lastDelivery":"","address":""},{"id":171,"name":"オーシャンビューイン希望ヶ丘","area":"名護・北部","type":"ホテル","target":27,"status":"ng","lastDelivery":"","address":"国頭郡恩納村名嘉真2288-580"},{"id":172,"name":"沖縄かりゆしビーチリゾート・オーシャンスパ","area":"名護・北部","type":"ホテル","target":516,"status":"ng","lastDelivery":"","address":"国頭郡恩納村名嘉真ヤーシ原2591-1"},{"id":173,"name":"EXES","area":"名護・北部","type":"ホテル","target":89,"status":"ng","lastDelivery":"","address":"国頭郡恩納村名嘉真ヤーシ原2592-40"},{"id":174,"name":"ハレクラニ沖縄","area":"名護・北部","type":"ホテル","target":360,"status":"ng","lastDelivery":"","address":"国頭郡恩納村名嘉真1967-1"},{"id":175,"name":"リブマックス アムス・カンナリゾートヴィラ","area":"名護・北部","type":"ホテル","target":30,"status":"ng","lastDelivery":"","address":"国頭郡宜野座村字漢那397-1"},{"id":176,"name":"カヌチャベイホテル＆ヴィラズ","area":"名護・北部","type":"ホテル","target":294,"status":"ng","lastDelivery":"","address":"沖縄県名護市安部156-2"},{"id":177,"name":"ザ・リッツ・カールトン沖縄","area":"名護・北部","type":"ホテル","target":97,"status":"ng","lastDelivery":"","address":"名護市喜瀬1343-1"},{"id":178,"name":"オリエンタルホテル 沖縄リゾート＆スパ","area":"名護・北部","type":"ホテル","target":361,"status":"ng","lastDelivery":"","address":"名護市喜瀬1490-1"},{"id":179,"name":"ザ・ブセナテラス","area":"名護・北部","type":"ホテル","target":408,"status":"ng","lastDelivery":"","address":"名護市喜瀬1808"},{"id":180,"name":"スーパーホテル沖縄・名護","area":"名護・北部","type":"ホテル","target":84,"status":"ng","lastDelivery":"","address":"名護市宮里1018"},{"id":181,"name":"フェニックスパークホテル","area":"名護・北部","type":"ホテル","target":79,"status":"ng","lastDelivery":"","address":"名護市宮里3-29-12"},{"id":182,"name":"ホテルゆがふいんおきなわ","area":"名護・北部","type":"ホテル","target":121,"status":"ng","lastDelivery":"","address":"名護市宮里453-1"},{"id":183,"name":"TWIN-LINE HOTEL YANBARU OKINAWA JAPAN","area":"名護・北部","type":"ホテル","target":92,"status":"ng","lastDelivery":"","address":"名護市幸喜108"},{"id":184,"name":"ベストウェスタン沖縄幸喜ビーチ","area":"名護・北部","type":"ホテル","target":85,"status":"ng","lastDelivery":"","address":"名護市幸喜117"},{"id":185,"name":"沖縄リゾートホテル かねひで喜瀬ビーチパレス","area":"名護・北部","type":"ホテル","target":162,"status":"ng","lastDelivery":"","address":"名護市字喜瀬115- 2"},{"id":186,"name":"ホテルリゾネックス名護","area":"名護・北部","type":"ホテル","target":141,"status":"ng","lastDelivery":"","address":"名護市字山入端247-1"},{"id":187,"name":"グリーンリッチホテル沖縄名護","area":"名護・北部","type":"ホテル","target":155,"status":"ng","lastDelivery":"","address":"名護市城2-646"},{"id":188,"name":"ホテル デルフィーノ 名護","area":"名護・北部","type":"ホテル","target":55,"status":"ng","lastDelivery":"","address":"名護市大南1-5-14"},{"id":189,"name":"ホテルルートイン名護","area":"名護・北部","type":"ホテル","target":147,"status":"ng","lastDelivery":"","address":"名護市東江5-11-3"},{"id":190,"name":"アラマハイナ コンドホテル","area":"名護・北部","type":"ホテル","target":100,"status":"ng","lastDelivery":"","address":"国頭郡本部町山川1421-1"},{"id":191,"name":"ホテルマハイナ ウェルネスリゾートオキナワ","area":"名護・北部","type":"ホテル","target":250,"status":"ng","lastDelivery":"","address":"国頭郡本部町山川1456"},{"id":192,"name":"本部グリーンパークホテル","area":"名護・北部","type":"ホテル","target":82,"status":"ng","lastDelivery":"","address":"国頭郡本部町字古島404"},{"id":193,"name":"マリンピアザオキナワ","area":"名護・北部","type":"ホテル","target":49,"status":"ng","lastDelivery":"","address":"国頭郡本部町字浜元410"},{"id":194,"name":"Ｅ－ｈｏｒｉｚｏｎ　Ｒｅｓｏｒｔ　コンドミニアム瀬底","area":"名護・北部","type":"ホテル","target":85,"status":"ng","lastDelivery":"","address":"国頭郡本部町瀬底2268"},{"id":195,"name":"ヒルトン沖縄瀬底リゾート","area":"名護・北部","type":"ホテル","target":298,"status":"ng","lastDelivery":"","address":"国頭郡本部町瀬底5750"},{"id":196,"name":"ロイヤルビューホテル美ら海","area":"名護・北部","type":"ホテル","target":120,"status":"ng","lastDelivery":"","address":"国頭郡本部町石川938"},{"id":197,"name":"ホテル オリオン モトブ リゾート＆スパ","area":"名護・北部","type":"ホテル","target":238,"status":"ng","lastDelivery":"","address":"国頭郡本部町備瀬148-1"},{"id":198,"name":"日産レンタカー 琉球ホテル＆リゾート名城ビーチ店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県糸満市名城963"},{"id":199,"name":"ニッポンレンタカー 那覇空港第３営業所","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県豊見城市豊崎３－９５"},{"id":200,"name":"オリックスレンタカー 那覇空港店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県 豊見城市豊崎１－１１７４"},{"id":201,"name":"OTSレンタカー 臨空豊崎営業所(那覇空港）","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"豊見城市豊崎3-37"},{"id":202,"name":"umuiレンラカー","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"豊見城市豊崎1-325"},{"id":203,"name":"シーサイドレンタカー","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"豊見城市翁長837-10"},{"id":204,"name":"道の駅豊崎","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":""},{"id":205,"name":"スカイ倶楽部","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"豊見城市豊崎３－６０"},{"id":206,"name":"道の駅糸満","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":""},{"id":207,"name":"ライトマークEVレンタカー","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"豊見城市渡橋名279-2"},{"id":208,"name":"スィートレンタカー","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県豊見城市名嘉地１２１番地（豊崎体育館通り）"},{"id":209,"name":"トヨタレンタカー とよみ店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"豊見城市渡橋名280-2（よね食堂左側）"},{"id":210,"name":"ダイハツレンタカー 豊見城店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県豊見城市座安331（よね食堂右側）"},{"id":211,"name":"ユニバースレンタカー","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県豊見城市伊良波518-1（忠孝交差点）"},{"id":212,"name":"バジェット･レンタカー 那覇空港店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県豊見城市名嘉地２５９−５（メイクマン手前）"},{"id":213,"name":"アップルレンタカー 那覇空港店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県豊見城市字瀬長81-1（神社の角）"},{"id":214,"name":"トヨタレンタカー 那覇空港シーサイド店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"豊見城市字与根50番地132 那覇空港（瀬長横リッチ）"},{"id":215,"name":"88レンタカー沖縄 空港前店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"豊見城市豊見城471－2"},{"id":216,"name":"ゴーヤレンタカー","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"豊見城市字瀬永95－1"},{"id":217,"name":"トヨタレンタカー 安謝店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"那覇市安謝664（コジマ隣）"},{"id":218,"name":"オリックスレンタカー とまりんカウンター","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県 那覇市前島３丁目２５－１ 泊ふ頭旅客ターミナルビル内"},{"id":219,"name":"Timesレンタカー 那覇国際通り店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県那覇市安里2-1-1CARGOES 1F（オリオンホテル向かい）"},{"id":220,"name":"ユウ・アイレンタカー 国際通り店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"那覇市牧志2丁目16番19号（ジュンク堂そば）"},{"id":221,"name":"オリックスレンタカー 美栄橋駅前店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県 那覇市牧志２－１７－１２（ジュンク堂そば）"},{"id":222,"name":"スカイレンタカー 那覇店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県那覇市久米2-6-16（ナハナ１本奥通り）"},{"id":223,"name":"ニッポンレンタカー 那覇空港営業所","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県那覇市西３丁目１５番４８号（波の上）"},{"id":224,"name":"オリックスレンタカー 那覇西町店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県 那覇市西２－３－１（ロワジール手前）"},{"id":225,"name":"TAレンタカー\n（株式会社阿久津工業）","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県那覇市西2-13-17"},{"id":226,"name":"Timesレンタカー 那覇空港店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県那覇市鏡水457-1"},{"id":227,"name":"セレクトレンタカー 那覇営業所","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県那覇市奥武山町26-24 奥武山マンションビル1F（球場手前）"},{"id":228,"name":"フジレンタカー 本社・那覇営業所","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県那覇市奥武山町26-7（球場手前）"},{"id":229,"name":"プルメリアレンタカー沖縄 那覇空港店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県那覇市奥武山町14番1"},{"id":230,"name":"Jネットレンタカー 那覇空港店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"那覇市金城3-7-2（コンベンローソン向かい）"},{"id":231,"name":"HVレンタカー 那覇空港営業所","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県那覇市 字金城3-8-14（コンベン331沿い）"},{"id":232,"name":"ABCレンタカー 那覇空港営業所","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県那覇市田原1-17-9（那覇西高校そば）"},{"id":233,"name":"オリックスレンタカー 那覇空港会員店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県 那覇市安次嶺１４－５"},{"id":234,"name":"マリオレンラカー１号店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"那覇市赤嶺1-10-7"},{"id":235,"name":"日産レンタカー 那覇空港第２店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県那覇市赤嶺2-13-13"},{"id":236,"name":"トヨタレンタカー 那覇空港店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"那覇市赤嶺2丁目15-11"},{"id":237,"name":"トヨタレンタカー 空港店２","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"那覇市赤嶺2-13-1"},{"id":238,"name":"OTSレンタカー 国内ファミリートラベラー店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"那覇市赤嶺1-15-3"},{"id":239,"name":"グッドスピードレンタカー 那覇空港前店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県那覇市赤嶺2-11-15 O-A号室"},{"id":240,"name":"オリックスレンタカー ＪＡＬパックプレミア店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県 那覇市赤嶺１－１２－１１"},{"id":241,"name":"ヒートスポーツレンタカー","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"那覇市赤嶺１－１－１４（アリエッタ１Ｆ）"},{"id":242,"name":"なはレンタカー","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県那覇市赤嶺2-4-5"},{"id":243,"name":"空港レンタカー","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県那覇市赤嶺2-4-11"},{"id":244,"name":"スカイレンタカー 那覇空港店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県那覇市具志1-23-8"},{"id":245,"name":"ユウ・アイレンタカー 空港店","area":"那覇・南部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"那覇市具志3丁目25番17号"},{"id":246,"name":"オリックスレンタカー 浦添店","area":"中部（北谷〜沖縄市）","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県 浦添市牧港５－４－１"},{"id":247,"name":"トヨタレンタカー 北谷店","area":"中部（北谷〜沖縄市）","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"中頭郡北谷町字宮城1-37北谷トヨタランド内"},{"id":248,"name":"オリックスレンタカー 北谷フィッシャリーナ店","area":"中部（北谷〜沖縄市）","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県 中頭郡北谷町美浜４０－２"},{"id":249,"name":"オリックスレンタカー 日航アリビラカウンター","area":"中部（北谷〜沖縄市）","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県 中頭郡読谷村字儀間６００ ホテル日航アリビラ内"},{"id":250,"name":"Timesレンタカー 中部店","area":"中部（北谷〜沖縄市）","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県中頭郡読谷村字比謝400-7"},{"id":251,"name":"トヨタレンタカー 中部店","area":"中部（北谷〜沖縄市）","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄市字大里1-12-27"},{"id":252,"name":"フジレンタカー 沖縄市営業所","area":"中部（北谷〜沖縄市）","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県沖縄市山内4-20-1"},{"id":253,"name":"オリックスレンタカー 恩納店","area":"名護・北部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県 国頭郡恩納村字前兼久２６９－２"},{"id":254,"name":"オリックスレンタカー リザンシーパークホテルカウンター","area":"名護・北部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県 国頭郡恩納村字谷茶１４９６"},{"id":255,"name":"ABCレンタカー 恩納南営業所","area":"名護・北部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"恩納村前兼久167番地 ピンクマリーンホテル内"},{"id":256,"name":"オリックスレンタカー ザ・ブセナテラスカウンター","area":"名護・北部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"沖縄県 名護市喜瀬１８０８"},{"id":257,"name":"トヨタレンタカー 名護店","area":"名護・北部","type":"レンタカー","target":50,"status":"ng","lastDelivery":"","address":"名護市東江5-21-5"},{"id":258,"name":"道の駅・観光地","area":"那覇・南部","type":"道の駅・観光地","target":100,"status":"ng","lastDelivery":"","address":"住所"},{"id":259,"name":"那覇空港　TAC","area":"那覇・南部","type":"道の駅・観光地","target":100,"status":"ng","lastDelivery":"","address":"那覇空港"},{"id":260,"name":"那覇空港　JTB（国内線）","area":"那覇・南部","type":"道の駅・観光地","target":100,"status":"ng","lastDelivery":"","address":"那覇空港"},{"id":261,"name":"那覇空港　JTB（国際線）","area":"那覇・南部","type":"道の駅・観光地","target":100,"status":"ng","lastDelivery":"","address":"那覇空港"},{"id":262,"name":"道の駅","area":"那覇・南部","type":"道の駅・観光地","target":100,"status":"ng","lastDelivery":"","address":"糸満ファーマーズ　観光協会"},{"id":263,"name":"道の駅","area":"那覇・南部","type":"道の駅・観光地","target":100,"status":"ng","lastDelivery":"","address":"豊崎ファーマーズ　観光協会(赤瓦側)"},{"id":264,"name":"道の駅","area":"那覇・南部","type":"道の駅・観光地","target":100,"status":"ng","lastDelivery":"","address":"八重瀬ファーマーズ"},{"id":265,"name":"道の駅","area":"中部（北谷〜沖縄市）","type":"道の駅・観光地","target":100,"status":"ng","lastDelivery":"","address":"嘉手納　道の駅"},{"id":266,"name":"道の駅","area":"名護・北部","type":"道の駅・観光地","target":100,"status":"ng","lastDelivery":"","address":"宜野座　道の駅"},{"id":267,"name":"道の駅","area":"名護・北部","type":"道の駅・観光地","target":100,"status":"ng","lastDelivery":"","address":"許田の道の駅"},{"id":268,"name":"とまりん","area":"那覇・南部","type":"道の駅・観光地","target":100,"status":"ng","lastDelivery":"","address":"前島　漁港"},{"id":269,"name":"大型船　漁港","area":"那覇・南部","type":"道の駅・観光地","target":100,"status":"ng","lastDelivery":"","address":"若狭　漁港"},{"id":270,"name":"ネクスコ西日本(高速ｲﾝﾀｰ)","area":"那覇・南部","type":"道の駅・観光地","target":100,"status":"ng","lastDelivery":"","address":""},{"id":271,"name":"上り　中城インター","area":"那覇・南部","type":"道の駅・観光地","target":100,"status":"ng","lastDelivery":"","address":""},{"id":272,"name":"上り　伊芸インター","area":"那覇・南部","type":"道の駅・観光地","target":100,"status":"ng","lastDelivery":"","address":""},{"id":273,"name":"下り　中村インター","area":"那覇・南部","type":"道の駅・観光地","target":100,"status":"ng","lastDelivery":"","address":""},{"id":274,"name":"下り　伊芸インター","area":"那覇・南部","type":"道の駅・観光地","target":100,"status":"ng","lastDelivery":"","address":""},{"id":275,"name":"モノレール","area":"那覇・南部","type":"道の駅・観光地","target":100,"status":"ng","lastDelivery":"","address":"那覇市本社へ"}];
+let schedules=[
+  {id:1,person:'田中 太郎',date:'2025-03-20',area:'那覇・南部',note:'国際通り周辺重点補充',urgent:false},
+  {id:2,person:'山田 花子',date:'2025-03-21',area:'中部（北谷〜沖縄市）',note:'北谷アメリカンビレッジ',urgent:false},
+  {id:3,person:'佐藤 次郎',date:'2025-03-22',area:'恩納村・読谷',note:'恩納村リゾートホテル群',urgent:false},
+];
+let deliveries=[];
+persons.forEach((p,pi)=>{facilities.filter(f=>f.area===p.area&&f.status==='ok').slice(0,3+pi).forEach(f=>{deliveries.push({id:Date.now()+Math.random(),facId:f.id,facName:f.name,person:p.name,count:f.target,time:new Date().toLocaleString('ja-JP'),photo:null,area:f.area});});});
+let receipts={};let photos={};let meterLogs={};let availReqs=[];
+persons.forEach(p=>{receipts[p.name]=[];photos[p.name]={meter:[],rack:[],facility:[],other:[]};meterLogs[p.name]={start:null,end:null,diff:null};});
+let currentPerson=null;let pinBuffer='';let dmPhotoData=null;let currentPhotoCat='meter';
+let importRows=[],importHeaders=[],importColMap={};
+let facFilters={text:'',area:'',status:''};let assignFacId=null;
+const COL_CANDS={name:['施設名','名称','施設','ホテル名','name','facility'],area:['エリア','地区','area','region'],type:['種別','タイプ','type'],target:['目標数','設置数','target','count'],address:['住所','所在地','address']};
+
+/* LOGIN */
+function selectRole(r){document.getElementById('roleSelect').style.display='none';if(r==='admin'){document.getElementById('pinWrap').classList.add('show');}else{renderDelegateItems();document.getElementById('delegateList').classList.add('show');}}
+function backToRole(){document.getElementById('roleSelect').style.display='';document.getElementById('pinWrap').classList.remove('show');document.getElementById('delegateList').classList.remove('show');pinBuffer='';updatePinDots();document.getElementById('pinError').style.display='none';}
+function pinInput(d){if(pinBuffer.length>=4)return;pinBuffer+=d;updatePinDots();if(pinBuffer.length===4)checkPin();}
+function pinBack(){pinBuffer=pinBuffer.slice(0,-1);updatePinDots();}
+function pinClear(){pinBuffer='';updatePinDots();}
+function updatePinDots(){for(let i=0;i<4;i++)document.getElementById('pd'+i).classList.toggle('filled',i<pinBuffer.length);}
+function checkPin(){if(pinBuffer===ADMIN_PIN){goAdmin();}else{document.getElementById('pinError').style.display='block';setTimeout(()=>{pinBuffer='';updatePinDots();document.getElementById('pinError').style.display='none';},900);}}
+function renderDelegateItems(){document.getElementById('delegateItems').innerHTML=persons.map(p=>`<div class="delegate-item" onclick="selectDelegate(${p.id})"><div class="d-avatar">${p.name[0]}</div><div><div class="d-name">${p.name}</div><div class="d-area">担当：${p.area}</div></div><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--dim)">PIN●●●●</div></div>`).join('');}
+let selectedDelegateId=null;
+function selectDelegate(id){
+  selectedDelegateId=id;
+  const p=persons.find(x=>x.id===id);
+  document.getElementById('delegateList').classList.remove('show');
+  document.getElementById('delegatePinWrap').classList.add('show');
+  document.getElementById('delegatePinName').textContent=p.name+'さんのPINを入力';
+  delegatePinBuffer='';updateDelegatePinDots();
+}
+let delegatePinBuffer='';
+function delegatePinInput(d){if(delegatePinBuffer.length>=4)return;delegatePinBuffer+=d;updateDelegatePinDots();if(delegatePinBuffer.length===4)checkDelegatePin();}
+function delegatePinBack(){delegatePinBuffer=delegatePinBuffer.slice(0,-1);updateDelegatePinDots();}
+function delegatePinClear(){delegatePinBuffer='';updateDelegatePinDots();}
+function updateDelegatePinDots(){for(let i=0;i<4;i++)document.getElementById('dpd'+i).classList.toggle('filled',i<delegatePinBuffer.length);}
+function checkDelegatePin(){
+  const p=persons.find(x=>x.id===selectedDelegateId);
+  if(delegatePinBuffer===(p.pin||'0000')){goDelegate(selectedDelegateId);}
+  else{document.getElementById('delegatePinError').style.display='block';setTimeout(()=>{delegatePinBuffer='';updateDelegatePinDots();document.getElementById('delegatePinError').style.display='none';},900);}
+}
+function backToDelegateList(){
+  document.getElementById('delegatePinWrap').classList.remove('show');
+  document.getElementById('delegateList').classList.add('show');
+  delegatePinBuffer='';updateDelegatePinDots();
+}
+function goAdmin(){switchScreen('adminScreen');populateAllSelects();renderAdminToday();renderAreas();renderFacList();renderScheduleList();renderExpenses();renderPersonList();setTodayDates();}
+function goDelegate(id){currentPerson=persons.find(p=>p.id===id);switchScreen('delegateScreen');initDelegate();}
+function logout(){currentPerson=null;pinBuffer='';updatePinDots();backToRole();switchScreen('loginScreen');}
+function switchScreen(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id).classList.add('active');}
+function setTodayDates(){const t=new Date().toISOString().split('T')[0];['instrDate','nsDate','assignDate'].forEach(id=>{const e=document.getElementById(id);if(e)e.value=t;});}
+
+/* ADMIN */
+function aTab(id,el){document.querySelectorAll('.asection').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.anav-tab').forEach(t=>t.classList.remove('active'));document.getElementById('a-'+id).classList.add('active');el.classList.add('active');if(id==='expenses')renderExpenses();if(id==='today')renderAdminToday();}
+function renderAdminToday(){
+  const done=facilities.filter(f=>f.status==='ok').length,pend=facilities.filter(f=>f.status!=='ok').length,total=facilities.length;
+  const pct=Math.round(done/total*100);
+  const todayKm=Object.values(meterLogs).reduce((s,m)=>s+(m.diff||0),0);
+  document.getElementById('todayStats').innerHTML=`<div class="stat"><div class="stat-n">${total}</div><div class="stat-l">総施設数</div></div><div class="stat"><div class="stat-n" style="color:var(--mint)">${done}</div><div class="stat-l">配布完了</div><div class="stat-s">${pct}%</div></div><div class="stat"><div class="stat-n" style="color:var(--red)">${pend}</div><div class="stat-l">未配布/要補充</div></div><div class="stat"><div class="stat-n" style="color:var(--coral2)">${deliveries.length}</div><div class="stat-l">本日配達件数</div></div><div class="stat"><div class="stat-n" style="color:var(--yellow)">${todayKm}</div><div class="stat-l">総走行km</div></div>`;
+  document.getElementById('todayPersons').innerHTML=persons.map(p=>{
+    const pDel=deliveries.filter(d=>d.person===p.name);const ml=meterLogs[p.name];const km=ml.diff||0;const fuel=km>0?Math.round(km/p.fuel*175):0;const sched=schedules.find(s=>s.person===p.name);
+    return `<div class="person-today"><div class="pt-header"><div class="avatar">${p.name[0]}</div><div style="flex:1"><div style="font-weight:700;font-size:14px">${p.name}</div><div style="font-size:11px;color:var(--dim)">${p.area}</div></div>${sched?`<span class="badge b-blue">${sched.date}</span>`:'<span class="badge b-coral">予定なし</span>'}</div><div class="pt-stats"><div class="pt-stat"><div class="pt-num" style="color:var(--mint)">${pDel.length}</div><div class="pt-label">配達件数</div></div><div class="pt-stat"><div class="pt-num" style="color:var(--coral2)">${km}km</div><div class="pt-label">走行距離</div></div><div class="pt-stat"><div class="pt-num" style="color:var(--yellow)">¥${fuel.toLocaleString()}</div><div class="pt-label">ガソリン代</div></div></div><div style="display:flex;gap:6px;flex-wrap:wrap"><span class="badge b-blue">${(receipts[p.name]||[]).length}件 領収書</span><span class="badge ${(photos[p.name]?.meter||[]).length>0?'b-green':'b-coral'}">${(photos[p.name]?.meter||[]).length}枚 写真</span></div></div>`;
+  }).join('');
+  const missed=facilities.filter(f=>f.status!=='ok').slice(0,8);
+  document.getElementById('missedFacilities').innerHTML=missed.length===0?'<div style="color:var(--mint);font-size:12px">✅ 全施設配布済みです</div>':missed.map(f=>`<div class="missed-row"><div class="row-dot" style="background:${f.status==='ng'?'var(--red)':'var(--yellow)'}"></div><div style="flex:1"><div class="row-name">${f.name}</div><div class="row-sub">${f.area}</div></div><button class="assign-btn" onclick="openAssign(${f.id})">割り当て</button></div>`).join('');
+  const eff=parseFloat(document.getElementById('fuelEff')?.value)||12,prc=parseFloat(document.getElementById('fuelPrc')?.value)||175;
+  const totalFuel=persons.reduce((s,p)=>{const km=meterLogs[p.name]?.diff||0;return s+(km>0?Math.round(km/eff*prc):0);},0);
+  const totalRec=Object.values(receipts).flat().reduce((s,r)=>s+r.amount,0);
+  document.getElementById('todaySummary').innerHTML=`<div class="ftable"><div class="frow"><span>ガソリン代合計</span><span style="font-family:'DM Mono',monospace">¥${totalFuel.toLocaleString()}</span></div><div class="frow"><span>領収書合計</span><span style="font-family:'DM Mono',monospace">¥${totalRec.toLocaleString()}</span></div><div class="frow"><span>経費合計</span><span>¥${(totalFuel+totalRec).toLocaleString()}</span></div></div>`;
+}
+function renderAreas(){
+  document.getElementById('areaCards').innerHTML=AREAS.map((area,i)=>{const af=facilities.filter(f=>f.area===area.name);const done=af.filter(f=>f.status==='ok').length;const pct=af.length?Math.round(done/af.length*100):0;return `<div class="area-card" onclick="showAreaDetail(${i})" id="ac${i}"><div style="display:flex;justify-content:space-between;align-items:center"><div style="font-weight:700;font-size:13px">${area.focus?'🔴':'⚪'} ${area.name}</div><span class="badge ${pct>=70?'b-green':pct>=40?'b-yellow':'b-red'}">${pct}%</span></div><div style="font-size:11px;color:var(--dim);margin-top:4px">${done}/${af.length} 施設完了</div><div class="pbar"><div class="pfill" style="width:${pct}%;background:${area.color}"></div></div></div>`;}).join('');
+}
+function showAreaDetail(i){document.querySelectorAll('[id^=ac]').forEach(e=>e.classList.remove('sel'));document.getElementById('ac'+i).classList.add('sel');const area=AREAS[i];const el=document.getElementById('areaDetail');el.style.display='block';document.getElementById('areaDetailTitle').textContent=`${area.name} の施設`;document.getElementById('areaFacList').innerHTML=facilities.filter(f=>f.area===area.name).map(f=>{const mapQ=encodeURIComponent((f.address||f.name)+' 沖縄');return `<div class="row"><div class="row-dot" style="background:${f.status==='ok'?'var(--mint)':f.status==='ng'?'var(--red)':'var(--yellow)'}"></div><div class="row-name">${f.name}<div class="row-sub">${f.type} ${f.address?'／'+f.address:''}</div></div><span class="badge ${f.status==='ok'?'b-green':f.status==='ng'?'b-red':'b-yellow'}">${f.status==='ok'?'配布済':f.status==='ng'?'未配布':'要補充'}</span><div class="row-mono">目標:${f.target}</div><a href="https://www.google.com/maps/search/?api=1&query=${mapQ}" target="_blank" style="font-size:16px;text-decoration:none">📍</a></div>`;}).join('');}
+function renderFacList(){let list=[...facilities];if(facFilters.text)list=list.filter(f=>f.name.includes(facFilters.text));if(facFilters.area)list=list.filter(f=>f.area===facFilters.area);if(facFilters.status)list=list.filter(f=>f.status===facFilters.status);document.getElementById('facList').innerHTML=list.map(f=>{const mapQ=encodeURIComponent((f.address||f.name)+' 沖縄');const mapUrl=`https://www.google.com/maps/search/?api=1&query=${mapQ}`;return `<div class="row"><div class="row-dot" style="background:${f.status==='ok'?'var(--mint)':f.status==='ng'?'var(--red)':'var(--yellow)'}"></div><div class="row-name">${f.name}<div class="row-sub">${f.area} / ${f.type}</div></div><span class="badge ${f.status==='ok'?'b-green':f.status==='ng'?'b-red':'b-yellow'}">${f.status==='ok'?'配布済':f.status==='ng'?'未配布':'要補充'}</span><div class="row-mono">目標:${f.target}</div><a href="${mapUrl}" target="_blank" style="font-size:16px;text-decoration:none;flex-shrink:0" title="Googleマップで開く">📍</a>${f.status!=='ok'?`<button class="btn btn-sm btn-coral" onclick="openAssign(${f.id})" style="font-size:10px;padding:3px 8px">割当</button>`:''}</div>`;}).join('')||'<div style="color:var(--dim);font-size:12px;padding:12px">該当なし</div>';}
+function filterFac(v){facFilters.text=v;renderFacList();}
+function filterFacArea(v){facFilters.area=v;renderFacList();}
+function filterFacStatus(v){facFilters.status=v;renderFacList();}
+function addFacility(){const name=document.getElementById('nfName').value.trim();if(!name){toast('施設名を入力');return;}facilities.push({id:fId++,name,area:document.getElementById('nfArea').value,type:document.getElementById('nfType').value,target:parseInt(document.getElementById('nfTarget').value)||20,status:'ng',lastDelivery:null,address:document.getElementById('nfAddr').value});closeModal('addFacModal');renderFacList();renderAreas();renderAdminToday();updateFacAreaFilter();toast('施設を追加しました ✓');}
+function renderScheduleList(){document.getElementById('schedList').innerHTML=schedules.length===0?'<div style="color:var(--dim);font-size:12px">スケジュールなし</div>':schedules.map(s=>`<div class="row">${s.urgent?'<span class="badge b-red" style="flex-shrink:0">緊急</span>':''}<div class="avatar" style="width:28px;height:28px;font-size:11px">${s.person[0]}</div><div class="row-name">${s.person}<div class="row-sub">📍${s.area}　${s.note||''}</div></div><div class="row-mono">${s.date}</div><button class="btn btn-sm btn-danger" onclick="deleteSchedule(${s.id})">🗑</button></div>`).join('');}
+function addSchedule(){schedules.push({id:Date.now(),person:document.getElementById('nsPerson').value,date:document.getElementById('nsDate').value,area:document.getElementById('nsArea').value,note:document.getElementById('nsNote').value,urgent:false});closeModal('addSchedModal');renderScheduleList();toast('スケジュールを追加 ✓');}
+function deleteSchedule(id){schedules=schedules.filter(s=>s.id!==id);renderScheduleList();}
+function generateInstruction(){const person=document.getElementById('instrPerson').value;const area=document.getElementById('instrArea').value;const date=document.getElementById('instrDate').value;if(!area){toast('エリアを選択');return;}const pending=facilities.filter(f=>f.area===area&&f.status!=='ok').slice(0,25);document.getElementById('instrOut').style.display='block';document.getElementById('instrContent').innerHTML=`<div style="font-size:10px;color:var(--dim);margin-bottom:8px;letter-spacing:1px">配達指示書</div><div style="font-size:12px;margin-bottom:8px"><b>${person}</b>　${date}　${area}</div><div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px;font-size:10px"><span style="background:var(--bg2);border-radius:4px;padding:2px 6px">出発</span>${pending.map(f=>`<span style="color:var(--dim)">→</span><span style="background:var(--bg2);border-radius:4px;padding:2px 6px">${f.name.slice(0,8)}</span>`).join('')}<span style="color:var(--dim)">→</span><span style="background:var(--bg2);border-radius:4px;padding:2px 6px">帰着</span></div><div style="font-size:10px;color:rgba(255,210,63,.7);margin-bottom:8px">⚠️ 出発前・各施設・帰着後にメーター写真必須</div>${pending.map((f,i)=>`<div style="display:flex;gap:8px;margin-bottom:6px;font-size:11px"><div style="background:var(--ocean);color:#fff;border-radius:50%;width:18px;height:18px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0">${i+1}</div><div><b>${f.name}</b> → <span style="color:var(--coral2)">${f.target}個</span><div style="font-size:10px;color:var(--dim)">${f.address}</div></div></div>`).join('')}`;}
+function copyInstr(){navigator.clipboard?.writeText(document.getElementById('instrContent').innerText).then(()=>toast('コピーしました ✓'));}
+function openDRouteMap(){
+  if(!currentPerson) return;
+  const pending=facilities.filter(f=>f.area===currentPerson.area&&f.status!=='ok').slice(0,25);
+  if(!pending.length){toast('未配布施設がありません');return;}
+  const dest=encodeURIComponent((pending[pending.length-1].address||pending[pending.length-1].name)+' 沖縄');
+  const waypoints=pending.slice(0,-1).map(f=>encodeURIComponent((f.address||f.name)+' 沖縄')).join('|');
+  const url='https://www.google.com/maps/dir/?api=1&destination='+dest+'&waypoints='+waypoints+'&travelmode=driving';
+  window.open(url,'_blank');
+}
+function openRouteMap(){
+  const area=document.getElementById('instrArea').value;
+  if(!area){toast('エリアを選択してください');return;}
+  const pending=facilities.filter(f=>f.area===area&&f.status!=='ok').slice(0,25);
+  if(!pending.length){toast('未配布施設がありません');return;}
+  // Google Maps directions with waypoints
+  const origin=encodeURIComponent('沖縄県那覇市');
+  const dest=encodeURIComponent(pending[pending.length-1].address||pending[pending.length-1].name+' 沖縄');
+  const waypoints=pending.slice(0,-1).map(f=>encodeURIComponent(f.address||f.name+' 沖縄')).join('|');
+  const url=`https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&waypoints=${waypoints}&travelmode=driving`;
+  window.open(url,'_blank');
+}
+function openAssign(facId){assignFacId=facId;const f=facilities.find(x=>x.id===facId);document.getElementById('assignFacName').textContent=`📍 ${f.name}（${f.area}）`;document.getElementById('assignPerson').innerHTML=persons.map(p=>`<option>${p.name}</option>`).join('');openModal('assignModal');}
+function doAssign(){const f=facilities.find(x=>x.id===assignFacId);const person=document.getElementById('assignPerson').value;const date=document.getElementById('assignDate').value;const note=document.getElementById('assignNote').value;schedules.push({id:Date.now(),person,date,area:f.area,note:`【緊急】${f.name}補充 ${note}`,urgent:true});closeModal('assignModal');renderScheduleList();renderAdminToday();toast(`${person} に ${f.name} を割り当て ✓`);}
+function renderExpenses(){const eff=parseFloat(document.getElementById('fuelEff')?.value)||12,prc=parseFloat(document.getElementById('fuelPrc')?.value)||175;document.getElementById('expPersonList').innerHTML=persons.map(p=>{const ml=meterLogs[p.name];const km=ml.diff||0;const fuel=km>0?Math.round(km/eff*prc):0;const rec=receipts[p.name]||[];const rt=rec.reduce((s,r)=>s+r.amount,0);return `<div class="row" style="margin-bottom:6px"><div class="avatar" style="width:28px;height:28px;font-size:11px">${p.name[0]}</div><div class="row-name">${p.name}<div class="row-sub">${km}km走行</div></div><div style="text-align:right"><div style="font-family:'DM Mono',monospace;font-size:12px;color:var(--coral2)">¥${(fuel+rt).toLocaleString()}</div><div class="row-sub">燃料+領収書</div></div></div>`;}).join('');const rows=persons.map(p=>{const km=meterLogs[p.name]?.diff||0;const cost=km>0?Math.round(km/eff*prc):0;return `<div class="frow"><span>${p.name}</span><span style="font-family:'DM Mono',monospace">${km}km→¥${cost.toLocaleString()}</span></div>`;});const total=persons.reduce((s,p)=>{const km=meterLogs[p.name]?.diff||0;return s+(km>0?Math.round(km/eff*prc):0);},0);const el=document.getElementById('fuelTable');if(el)el.innerHTML=rows.join('')+`<div class="frow"><span>合計</span><span>¥${total.toLocaleString()}</span></div>`;const all=Object.entries(receipts).flatMap(([name,recs])=>recs.map(r=>({...r,personName:name})));const re=document.getElementById('allReceipts');if(re)re.innerHTML=all.length===0?'<div style="color:var(--dim);font-size:12px">領収書なし</div>':all.map(r=>`<div class="receipt-item"><div class="r-icon">${r.type==='highway'?'🛣️':r.type==='parking'?'🅿️':'📋'}</div><div class="r-info"><div class="r-name">${r.personName} - ${r.name}</div><div class="r-date">${r.date}</div></div><div class="r-amount">¥${r.amount.toLocaleString()}</div>${r.src?`<img src="${r.src}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;cursor:pointer;flex-shrink:0" onclick="showPhoto('領収書','<img src=\\'${r.src}\\' style=\\'width:100%;border-radius:8px\\'>'>">`:''}</div>`).join('');}
+function renderPersonList(){document.getElementById('personList').innerHTML=persons.map(p=>{const pDel=deliveries.filter(d=>d.person===p.name).length;const km=meterLogs[p.name]?.diff||0;return `<div class="row" style="padding:12px 14px"><div class="avatar">${p.name[0]}</div><div class="row-name">${p.name}<div class="row-sub">${p.area} ／ ${p.car} ／ 燃費${p.fuel}km/L ／ PIN:${p.pin||'未設定'}</div></div><span class="badge b-blue">${pDel}件</span><button class="btn btn-sm btn-ghost" onclick="openEditPerson(${p.id})">✏️</button><button class="btn btn-sm btn-danger" onclick="deletePerson(${p.id})">🗑</button></div>`;}).join('');}
+function addPerson(){const name=document.getElementById('npName').value.trim();if(!name){toast('氏名を入力');return;}const pin=String(document.getElementById('npPin').value||'0000').padStart(4,'0');const p={id:Date.now(),name,area:document.getElementById('npArea').value,car:document.getElementById('npCar').value,fuel:parseFloat(document.getElementById('npFuel').value)||12,pin};persons.push(p);receipts[name]=[];photos[name]={meter:[],rack:[],facility:[],other:[]};meterLogs[name]={start:null,end:null,diff:null};closeModal('addPersonModal');populateAllSelects();renderPersonList();renderAdminToday();renderDelegateItems();toast(`${name} を追加 ✓`);}
+function openEditPerson(id){const p=persons.find(x=>x.id===id);document.getElementById('epId').value=id;document.getElementById('epName').value=p.name;document.getElementById('epCar').value=p.car;document.getElementById('epFuel').value=p.fuel;document.getElementById('epArea').innerHTML=AREAS.map(a=>`<option ${a.name===p.area?'selected':''}>${a.name}</option>`).join('');document.getElementById('epPin').value=p.pin||'';openModal('editPersonModal');}
+function saveEditPerson(){const id=parseInt(document.getElementById('epId').value);const p=persons.find(x=>x.id===id);const on=p.name;p.name=document.getElementById('epName').value.trim();p.area=document.getElementById('epArea').value;p.car=document.getElementById('epCar').value;p.fuel=parseFloat(document.getElementById('epFuel').value)||12;const epPin=document.getElementById('epPin').value;if(epPin)p.pin=String(epPin).padStart(4,'0');if(on!==p.name){receipts[p.name]=receipts[on]||[];delete receipts[on];photos[p.name]=photos[on]||{meter:[],rack:[],facility:[],other:[]};delete photos[on];meterLogs[p.name]=meterLogs[on]||{start:null,end:null,diff:null};delete meterLogs[on];deliveries.forEach(d=>{if(d.person===on)d.person=p.name;});schedules.forEach(s=>{if(s.person===on)s.person=p.name;});}closeModal('editPersonModal');populateAllSelects();renderPersonList();renderAdminToday();renderScheduleList();toast('更新しました ✓');}
+function deletePerson(id){const p=persons.find(x=>x.id===id);if(!confirm(`「${p.name}」を削除しますか？`))return;persons=persons.filter(x=>x.id!==id);populateAllSelects();renderPersonList();renderAdminToday();renderDelegateItems();toast(`${p.name} を削除`);}
+function populateAllSelects(){const aOpts=AREAS.map(a=>`<option>${a.name}</option>`).join('');['npArea','nfArea','nsArea','instrArea','epArea'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=aOpts;});const pOpts=persons.map(p=>`<option>${p.name}</option>`).join('');['nsPerson','instrPerson'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=pOpts;});updateFacAreaFilter();}
+function updateFacAreaFilter(){const el=document.getElementById('facAreaFilter');if(!el)return;el.innerHTML='<option value="">全エリア</option>'+AREAS.map(a=>`<option>${a.name}</option>`).join('');}
+
+/* DELEGATE */
+function initDelegate(){const p=currentPerson;document.getElementById('dAvatar').textContent=p.name[0];document.getElementById('dName').textContent=p.name;document.getElementById('dAreaLabel').textContent=`担当：${p.area}`;document.getElementById('dAvailDate').value=new Date().toISOString().split('T')[0];['d-home','d-delivery','d-photos','d-receipts'].forEach(id=>{const el=document.getElementById(id);if(el){el.classList.remove('active');}});document.getElementById('d-home').classList.add('active');document.querySelectorAll('.dnav-tab').forEach(t=>t.classList.remove('active'));document.querySelector('.dnav-tab').classList.add('active');renderDHome();renderDDelivery();renderDPhotos();renderDReceipts();}
+function dTab(id,el){document.querySelectorAll('.dsection').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.dnav-tab').forEach(t=>t.classList.remove('active'));document.getElementById('d-'+id).classList.add('active');el.classList.add('active');}
+function renderDHome(){const p=currentPerson;const pDel=deliveries.filter(d=>d.person===p.name).length;const km=meterLogs[p.name]?.diff||0;
+  // 今日バナー
+  const today=new Date().toISOString().split('T')[0];
+  const todaySched=schedules.filter(s=>s.person===p.name&&s.date===today);
+  const pendingFacs=facilities.filter(f=>f.area===p.area&&f.status!=='ok');
+  const urgentScheds=schedules.filter(s=>s.person===p.name&&s.urgent);
+  const statusEl=document.getElementById('dTodayStatus');
+  const detailEl=document.getElementById('dTodayDetail');
+  if(urgentScheds.length>0){
+    statusEl.innerHTML='🚨 <span style="color:var(--coral2)">緊急対応あり！</span>';
+    detailEl.textContent=urgentScheds.map(s=>s.note).join(' / ');
+  } else if(todaySched.length>0){
+    statusEl.innerHTML='✅ <span style="color:var(--mint)">今日は出動日です</span>';
+    detailEl.textContent='エリア：'+todaySched.map(s=>s.area).join('・')+'　未配布:'+pendingFacs.length+'件';
+  } else {
+    statusEl.innerHTML='📅 <span style="color:var(--dim)">今日の予定はありません</span>';
+    detailEl.textContent=pendingFacs.length>0?`担当エリアに未配布施設が${pendingFacs.length}件あります`:'担当エリアはすべて配布済みです';
+  }
+  // 管理者指示（スケジュールのnoteを表示）
+  const instrEl=document.getElementById('dTodayInstruction');
+  if(instrEl){
+    const allScheds=schedules.filter(s=>s.person===p.name).sort((a,b)=>a.date>b.date?1:-1);
+    if(allScheds.length>0){
+      instrEl.innerHTML=allScheds.slice(0,3).map(s=>`<div style="padding:8px 10px;background:var(--bg3);border-radius:8px;margin-bottom:6px;border-left:3px solid ${s.urgent?'var(--coral)':'var(--ocean)'}"><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--coral2)">${s.date}${s.urgent?' 🚨緊急':''}</div><div style="font-size:13px;margin-top:2px">${s.note||s.area}</div></div>`).join('');
+    } else { instrEl.textContent='指示がありません'; }
+  }
+  document.getElementById('dHomeStats').innerHTML=`<div class="stat"><div class="stat-n" style="color:var(--mint)">${pDel}</div><div class="stat-l">本日配達件数</div></div><div class="stat"><div class="stat-n" style="color:var(--coral2)">${km}km</div><div class="stat-l">本日走行距離</div></div>`;const myScheds=schedules.filter(s=>s.person===p.name);const myAvail=availReqs.filter(a=>a.person===p.name);document.getElementById('dMySchedule').innerHTML=(myScheds.length===0&&myAvail.length===0)?'<div style="color:var(--dim);font-size:12px">スケジュールがありません</div>':[...myScheds.map(s=>`<div class="sched-item" style="${s.urgent?'border-color:var(--coral)':''}"><${s.urgent?`div style="font-size:10px;color:var(--coral);margin-bottom:4px;font-weight:700">🚨 緊急割り当て</div`:'span style="display:none"'}><div class="sched-date">${s.date}</div><div class="sched-area">📍 ${s.area}</div><div class="sched-note">${s.note||''}</div></div>`),...myAvail.map(a=>`<div class="sched-item" style="border-color:var(--mint);opacity:.8"><div style="font-size:10px;color:var(--mint);margin-bottom:4px;font-weight:700">✅ 稼働登録済み</div><div class="sched-date">${a.date}</div><div class="sched-note">${a.note||'メモなし'}</div></div>`)].join('');}
+function saveDAvail(){const date=document.getElementById('dAvailDate').value;if(!date){toast('日付を選択');return;}availReqs.push({person:currentPerson.name,date,note:document.getElementById('dAvailNote').value});document.getElementById('dAvailNote').value='';renderDHome();toast('稼働予定を登録しました ✓');}
+function renderDDelivery(){const p=currentPerson;document.getElementById('dDeliveryNote').textContent=`担当エリア：${p.area}　${new Date().toLocaleDateString('ja-JP')}`;const areaFacs=facilities.filter(f=>f.area===p.area&&f.status!=='ok').slice(0,15);document.getElementById('dFacilityChecks').innerHTML=areaFacs.length===0?'<div style="color:var(--mint);font-size:13px;text-align:center;padding:20px">✅ 担当エリアの補充は完了しています！</div>':areaFacs.map(f=>{const mapQ=encodeURIComponent((f.address||f.name)+' 沖縄');const mapUrl=`https://www.google.com/maps/search/?api=1&query=${mapQ}`;const isDone=deliveries.some(d=>d.facId===f.id&&d.person===currentPerson.name);return `<div class="fcheck ${isDone?'done':''}" id="fcheck${f.id}"><div class="fcheck-cb" id="fcb${f.id}" onclick="openDeliveryModal(${f.id})">${isDone?'✓':''}</div><div style="flex:1"><div class="fcheck-name">${f.name}</div><div class="fcheck-sub">${f.type}　目標：${f.target}個</div></div><div style="text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:4px"><a href="${mapUrl}" target="_blank" style="font-size:22px;text-decoration:none" title="地図を開く">📍</a><span class="badge ${f.status==='ng'?'b-red':f.status==='partial'?'b-yellow':'b-green'}" style="font-size:9px">${f.status==='ng'?'未配布':f.status==='partial'?'要補充':'配布済'}</span><button class="btn btn-sm btn-coral" style="font-size:10px;padding:3px 8px" onclick="openDeliveryModal(${f.id})">記録</button></div></div>`;}).join('');renderDDoneList();}
+function openDeliveryModal(id){const f=facilities.find(x=>x.id===id);document.getElementById('dmFacId').value=id;document.getElementById('dmFacName').textContent=f.name;document.getElementById('dmTarget').textContent=f.target+'個';document.getElementById('dmCount').value='';document.getElementById('dmMeter').value='';document.getElementById('dmPhotoPreview').innerHTML='';dmPhotoData=null;openModal('deliveryModal');}
+function handleDmPhoto(input){if(!input.files[0])return;const r=new FileReader();r.onload=e=>{dmPhotoData=e.target.result;document.getElementById('dmPhotoPreview').innerHTML=`<div class="photo-th" style="width:80px;height:80px"><img src="${e.target.result}"></div>`;};r.readAsDataURL(input.files[0]);}
+function saveDelivery(){const facId=parseInt(document.getElementById('dmFacId').value);const count=parseInt(document.getElementById('dmCount').value)||0;if(!count){toast('配布数を入力');return;}const f=facilities.find(x=>x.id===facId);f.status=count>=f.target?'ok':'partial';f.lastDelivery=new Date().toISOString().split('T')[0];deliveries.push({id:Date.now(),facId,facName:f.name,person:currentPerson.name,count,meter:document.getElementById('dmMeter').value,time:new Date().toLocaleString('ja-JP'),photo:dmPhotoData,area:f.area});const cb=document.getElementById('fcb'+facId);if(cb){cb.textContent='✓';document.getElementById('fcheck'+facId).classList.add('done');}closeModal('deliveryModal');renderDDoneList();renderDHome();toast(`${f.name} に ${count}個 配布 ✓`);}
+function renderDDoneList(){const pDel=deliveries.filter(d=>d.person===currentPerson?.name);document.getElementById('dDoneList').innerHTML=pDel.length===0?'<div style="color:var(--dim);font-size:12px">まだ記録がありません</div>':pDel.slice().reverse().map(d=>`<div class="receipt-item"><div class="r-icon">📦</div><div class="r-info"><div class="r-name">${d.facName}</div><div class="r-date">${d.time}</div></div><div class="r-amount">${d.count}個</div>${d.photo?`<img src="${d.photo}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;flex-shrink:0">`:''}</div>`).join('');}
+function openPhotoUpload(cat){currentPhotoCat=cat;document.getElementById('photoInput').click();}
+function handlePhotoUpload(input){if(!input.files.length)return;const p=currentPerson;Array.from(input.files).forEach(file=>{const r=new FileReader();r.onload=e=>{photos[p.name][currentPhotoCat].push({src:e.target.result,name:file.name,time:new Date().toLocaleTimeString('ja-JP')});renderDPhotos();};r.readAsDataURL(file);});input.value='';}
+function renderDPhotos(){const p=currentPerson;const cats={meter:'🔢 メーター',rack:'🗂️ ラック',facility:'🏨 施設',other:'📷 その他'};['meter','rack','facility','other'].forEach(cat=>{const count=(photos[p.name]?.[cat]||[]).length;const id='uc'+cat.charAt(0).toUpperCase()+cat.slice(1);const el=document.getElementById(id);if(el)el.textContent=count+'枚';});const byCat={};Object.entries(photos[p.name]||{}).forEach(([cat,list])=>{if(list.length)byCat[cat]=list;});document.getElementById('photoGallery').innerHTML=Object.keys(byCat).length===0?'':Object.entries(byCat).map(([cat,list])=>`<div class="card" style="margin-bottom:10px"><div class="card-title">${cats[cat]||cat}（${list.length}枚）</div><div class="photo-row">${list.map((ph,i)=>`<div class="photo-th"><img src="${ph.src}" onclick="showPhoto('${cats[cat]||cat}','<img src=\\'${ph.src}\\' style=\\'width:100%;border-radius:8px\\'>>')"><button class="del" onclick="deletePhoto('${cat}',${i})">✕</button></div>`).join('')}</div></div>`).join('');}
+function deletePhoto(cat,idx){photos[currentPerson.name][cat].splice(idx,1);renderDPhotos();}
+function showPhoto(title,html){document.getElementById('pvTitle').textContent=title;document.getElementById('pvContent').innerHTML=html;openModal('photoViewModal');}
+function calcDMeter(){const s=parseInt(document.getElementById('dMeterStartIn').value)||0;const e=parseInt(document.getElementById('dMeterEndIn').value)||0;if(s&&e&&e>s){const diff=e-s;const fuel=Math.round(diff/currentPerson.fuel*175);document.getElementById('dMeterStart').textContent=s.toLocaleString()+' km';document.getElementById('dMeterEnd').textContent=e.toLocaleString()+' km';document.getElementById('dMeterDiff').textContent=diff+' km';document.getElementById('dFuelCost').textContent='約¥'+fuel.toLocaleString();}}
+function saveDMeter(){const s=parseInt(document.getElementById('dMeterStartIn').value)||0;const e=parseInt(document.getElementById('dMeterEndIn').value)||0;if(!s||!e){toast('メーターを入力');return;}meterLogs[currentPerson.name]={start:s,end:e,diff:e-s};calcDMeter();renderDHome();toast('走行距離を保存 ✓');}
+function handleReceiptUpload(input,type){if(!input.files[0])return;const file=input.files[0];const r=new FileReader();r.onload=e=>{const amount=Math.floor(Math.random()*3000+300);const p=currentPerson.name;receipts[p].push({id:Date.now(),type,name:file.name,amount,date:new Date().toLocaleDateString('ja-JP'),src:e.target.result});renderDReceipts();toast('領収書をアップロード ✓');};r.readAsDataURL(file);input.value='';}
+function renderDReceipts(){const p=currentPerson;const rec=receipts[p.name]||[];['highway','parking','other'].forEach(t=>{const el=document.getElementById('rc'+t.charAt(0).toUpperCase()+t.slice(1));if(el)el.textContent=rec.filter(r=>r.type===t).length+'件';});document.getElementById('dReceiptList').innerHTML=rec.length===0?'<div style="color:var(--dim);font-size:12px">領収書がありません</div>':rec.slice().reverse().map(r=>`<div class="receipt-item"><div class="r-icon">${r.type==='highway'?'🛣️':r.type==='parking'?'🅿️':'📋'}</div><div class="r-info"><div class="r-name">${r.type==='highway'?'高速道路':r.type==='parking'?'駐車場':'その他'}</div><div class="r-date">${r.date}　${r.name}</div></div><div class="r-amount">¥${r.amount.toLocaleString()}</div>${r.src?`<img src="${r.src}" style="width:32px;height:32px;border-radius:6px;object-fit:cover;cursor:pointer;flex-shrink:0" onclick="showPhoto('領収書','<img src=\\'${r.src}\\' style=\\'width:100%;border-radius:8px\\'>>')">`:''}</div>`).join('');const ml=meterLogs[p.name];const km=ml.diff||0;const fuel=km>0?Math.round(km/p.fuel*175):0;const ht=rec.filter(r=>r.type==='highway').reduce((s,r)=>s+r.amount,0);const pt=rec.filter(r=>r.type==='parking').reduce((s,r)=>s+r.amount,0);const ot=rec.filter(r=>r.type==='other').reduce((s,r)=>s+r.amount,0);document.getElementById('dExpSummary').innerHTML=`<div class="ftable"><div class="frow"><span>⛽ ガソリン代(${km}km)</span><span style="font-family:'DM Mono',monospace">¥${fuel.toLocaleString()}</span></div><div class="frow"><span>🛣️ 高速道路</span><span style="font-family:'DM Mono',monospace">¥${ht.toLocaleString()}</span></div><div class="frow"><span>🅿️ 駐車場</span><span style="font-family:'DM Mono',monospace">¥${pt.toLocaleString()}</span></div><div class="frow"><span>📋 その他</span><span style="font-family:'DM Mono',monospace">¥${ot.toLocaleString()}</span></div><div class="frow"><span>合計</span><span>¥${(fuel+ht+pt+ot).toLocaleString()}</span></div></div>`;}
+
+/* EXCEL */
+function detectCol(headers,key){const cands=COL_CANDS[key]||[];for(const h of headers){const hl=h.toLowerCase().replace(/\s/g,'');if(cands.some(c=>hl.includes(c.toLowerCase())))return h;}return '';}
+function handleExcelImport(input){if(!input.files[0])return;const file=input.files[0];const reader=new FileReader();reader.onload=e=>{try{const data=new Uint8Array(e.target.result);const wb=XLSX.read(data,{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];const json=XLSX.utils.sheet_to_json(ws,{defval:''});if(!json.length){toast('データが見つかりませんでした');return;}importRows=json;importHeaders=Object.keys(json[0]);importColMap={};Object.keys(COL_CANDS).forEach(k=>{importColMap[k]=detectCol(importHeaders,k);});renderXlsxModal(file.name,wb.SheetNames[0],json.length);openModal('xlsxModal');}catch(err){toast('ファイル読込失敗: '+err.message);}input.value='';};reader.readAsArrayBuffer(file);}
+function renderXlsxModal(fname,sname,rows){document.getElementById('xlsxSummary').innerHTML=`<div class="meter-display"><div class="meter-row"><span class="mkey">ファイル名</span><span class="mval" style="font-size:11px">${fname}</span></div><div class="meter-row"><span class="mkey">シート</span><span class="mval" style="font-size:11px">${sname}</span></div><div class="meter-row"><span class="mkey">データ行数</span><span class="mval">${rows}件</span></div></div>`;const labels={name:'施設名 *',area:'エリア',type:'種別',target:'目標数',address:'住所'};document.getElementById('xlsxMapping').innerHTML=`<div style="font-size:11px;color:var(--dim);margin-bottom:8px">列マッピング（自動検出済）</div><div class="g2">${Object.keys(labels).map(k=>`<div class="fg" style="margin-bottom:8px"><label class="fl">${labels[k]}</label><select class="fi" id="xm_${k}" onchange="refreshXlsxPreview()">${['（未使用）',...importHeaders].map(h=>`<option ${importColMap[k]===h?'selected':''}>${h}</option>`).join('')}</select></div>`).join('')}</div>`;refreshXlsxPreview();}
+function getXlsxMap(){const m={};['name','area','type','target','address'].forEach(k=>{const el=document.getElementById('xm_'+k);m[k]=el?el.value:'';});return m;}
+function refreshXlsxPreview(){const m=getXlsxMap();const used=Object.entries(m).filter(([k,v])=>v&&v!=='（未使用）');const tbl=document.getElementById('xlsxPreview');if(!used.length){tbl.innerHTML='';return;}const th=used.map(([k])=>`<th style="padding:5px 8px;background:var(--bg3);font-size:10px;text-align:left">${{name:'施設名',area:'エリア',type:'種別',target:'目標数',address:'住所'}[k]||k}</th>`).join('');const rows=importRows.slice(0,8).map(row=>`<tr>${used.map(([k,v])=>`<td style="padding:4px 8px;font-size:10px;border-bottom:1px solid var(--bg3);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${row[v]??''}</td>`).join('')}</tr>`).join('');tbl.innerHTML=`<thead><tr>${th}</tr></thead><tbody>${rows}</tbody>`;}
+function applyXlsx(){const m=getXlsxMap();if(!m.name||m.name==='（未使用）'){toast('施設名列を設定してください');return;}const append=document.getElementById('xlsxAppend').checked;importRows.forEach(row=>{const area=m.area&&m.area!=='（未使用）'?String(row[m.area]||'').trim():'';if(area&&!AREAS.find(a=>a.name===area))AREAS.push({name:area,color:AREA_COLORS[AREAS.length%AREA_COLORS.length],focus:false});});const newFacs=importRows.map(row=>{const name=String(row[m.name]||'').trim();if(!name)return null;const area=m.area&&m.area!=='（未使用）'?String(row[m.area]||'').trim()||'未分類':'未分類';const type=m.type&&m.type!=='（未使用）'?String(row[m.type]||'').trim()||'その他':'その他';const target=m.target&&m.target!=='（未使用）'?(parseInt(row[m.target])||20):20;const address=m.address&&m.address!=='（未使用）'?String(row[m.address]||'').trim():'';return {id:fId++,name,area,type,target,address,status:'ng',lastDelivery:null};}).filter(Boolean);if(append){const ex=new Set(facilities.map(f=>f.name+'|'+f.area));const add=newFacs.filter(f=>!ex.has(f.name+'|'+f.area));facilities.push(...add);toast(`${add.length}件追加（重複${newFacs.length-add.length}件スキップ）`);}else{facilities=newFacs;toast(`${newFacs.length}件に置き換えました`);}closeModal('xlsxModal');populateAllSelects();renderAreas();renderFacList();renderAdminToday();}
+
+/* UTILS */
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.overlay').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open');}));
+function toast(msg,dur=2500){const t=document.getElementById('toast');t.textContent=msg;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',dur);}
+
+/* ══════════════════════════════════════════════════════
+   GOOGLE APPS SCRIPT API 連携
+══════════════════════════════════════════════════════ */
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbx-FIXB__ByKKUR4Almq5bySHhfOlzhJ1D6qiwKtpxw-URr4ytkSDzzuPpIw_T2cGVD/exec';
+
+// ローディング表示
+function showLoading(msg='読み込み中...'){
+  const t=document.getElementById('toast');
+  t.style.background='var(--ocean)';
+  t.style.color='#fff';
+  t.textContent='⏳ '+msg;
+  t.style.display='block';
+}
+function hideLoading(){
+  const t=document.getElementById('toast');
+  t.style.background='';t.style.color='';
+  t.style.display='none';
+}
+
+// GET リクエスト
+async function gasGet(action){
+  try {
+    const res = await fetch(`${GAS_URL}?action=${action}`);
+    return await res.json();
+  } catch(e) {
+    console.error('GAS GET error:', e);
+    return null;
+  }
+}
+
+// POST リクエスト
+async function gasPost(data){
+  try {
+    const res = await fetch(GAS_URL, {
+      method:'POST',
+      body: JSON.stringify(data),
+      headers:{'Content-Type':'text/plain'}
+    });
+    return await res.json();
+  } catch(e) {
+    console.error('GAS POST error:', e);
+    return null;
+  }
+}
+
+// 全データをスプレッドシートから読み込む
+async function loadAllFromGAS(){
+  showLoading('スプレッドシートからデータを読み込み中...');
+  try {
+    const [facData, personData, schedData, delData, recData] = await Promise.all([
+      gasGet('getFacilities'),
+      gasGet('getPersons'),
+      gasGet('getSchedules'),
+      gasGet('getDeliveries'),
+      gasGet('getReceipts'),
+    ]);
+
+    // 施設データ
+    if(facData && facData.length > 0){
+      facilities = facData.map(f=>({
+        id: Number(f.id)||fId++,
+        name: f.name||'',
+        area: f.area||'',
+        type: f.type||'その他',
+        target: Number(f.target)||20,
+        status: f.status||'ng',
+        lastDelivery: f.lastDelivery||null,
+        address: f.address||''
+      }));
+      // エリア自動追加
+      facilities.forEach(f=>{
+        if(f.area && !AREAS.find(a=>a.name===f.area)){
+          AREAS.push({name:f.area,color:AREA_COLORS[AREAS.length%AREA_COLORS.length],focus:false});
+        }
+      });
+    }
+
+    // 委託者データ
+    if(personData && personData.length > 0){
+      persons = personData.map(p=>({
+        id: Number(p.id)||Date.now(),
+        name: p.name||'',
+        area: p.area||'',
+        car: p.car||'',
+        fuel: Number(p.fuel)||12
+      }));
+      // 受信した委託者の receipts/photos/meterLogs を初期化
+      persons.forEach(p=>{
+        if(!receipts[p.name]) receipts[p.name]=[];
+        if(!photos[p.name])   photos[p.name]={meter:[],rack:[],facility:[],other:[]};
+        if(!meterLogs[p.name]) meterLogs[p.name]={start:null,end:null,diff:null};
+      });
+    }
+
+    // スケジュールデータ
+    if(schedData && schedData.length > 0){
+      schedules = schedData.map(s=>({
+        id: Number(s.id)||Date.now(),
+        person: s.person||'',
+        date: s.date||'',
+        area: s.area||'',
+        note: s.note||'',
+        urgent: s.urgent==='true'||s.urgent===true
+      }));
+    }
+
+    // 配達記録
+    if(delData && delData.length > 0){
+      deliveries = delData.map(d=>({
+        id: Number(d.id)||Date.now(),
+        facId: Number(d.facId),
+        facName: d.facName||'',
+        person: d.person||'',
+        count: Number(d.count)||0,
+        meter: d.meter||'',
+        time: d.time||'',
+        area: d.area||''
+      }));
+    }
+
+    // 領収書
+    if(recData && recData.length > 0){
+      recData.forEach(r=>{
+        const name = r.person||'';
+        if(!receipts[name]) receipts[name]=[];
+        receipts[name].push({
+          id: Number(r.id)||Date.now(),
+          type: r.type||'other',
+          name: r.name||'',
+          amount: Number(r.amount)||0,
+          date: r.date||''
+        });
+      });
+    }
+
+    hideLoading();
+    toast('✅ データを読み込みました');
+    return true;
+  } catch(e) {
+    hideLoading();
+    toast('⚠️ オフラインモードで起動しました');
+    return false;
+  }
+}
+
+// 施設をスプレッドシートに保存
+async function gasSaveFacility(f){
+  return gasPost({action:'saveFacility', ...f});
+}
+
+// 配達記録をスプレッドシートに保存
+async function gasSaveDelivery(d){
+  return gasPost({action:'saveDelivery', ...d});
+}
+
+// 施設ステータスを更新
+async function gasUpdateFacilityStatus(id, status, lastDelivery){
+  return gasPost({action:'updateFacilityStatus', id, status, lastDelivery});
+}
+
+// 委託者をスプレッドシートに保存
+async function gasSavePerson(p){
+  return gasPost({action:'savePerson', ...p});
+}
+
+// スケジュールをスプレッドシートに保存
+async function gasSaveSchedule(s){
+  return gasPost({action:'saveSchedule', ...s});
+}
+
+// 領収書をスプレッドシートに保存（画像なし）
+async function gasSaveReceipt(r){
+  return gasPost({action:'saveReceipt', ...r});
+}
+
+// 委託者削除
+async function gasDeletePerson(id){
+  return gasPost({action:'deletePerson', id});
+}
+
+// スケジュール削除
+async function gasDeleteSchedule(id){
+  return gasPost({action:'deleteSchedule', id});
+}
+
+// ── GAS連携版 関数オーバーライド ──
+
+// 管理者ログイン時にデータ読み込み
+const _origGoAdmin = goAdmin;
+function goAdmin(){
+  switchScreen('adminScreen');
+  loadAllFromGAS().then(()=>{
+    populateAllSelects();
+    renderAdminToday();
+    renderAreas();
+    renderFacList();
+    renderScheduleList();
+    renderExpenses();
+    renderPersonList();
+    setTodayDates();
+  });
+}
+
+// 施設追加（GAS保存追加）
+const _origAddFacility = addFacility;
+function addFacility(){
+  const name=document.getElementById('nfName').value.trim();
+  if(!name){toast('施設名を入力');return;}
+  const f={id:fId++,name,area:document.getElementById('nfArea').value,type:document.getElementById('nfType').value,target:parseInt(document.getElementById('nfTarget').value)||20,status:'ng',lastDelivery:null,address:document.getElementById('nfAddr').value};
+  facilities.push(f);
+  closeModal('addFacModal');
+  renderFacList();renderAreas();renderAdminToday();updateFacAreaFilter();
+  gasSaveFacility(f).then(r=>toast(r?.ok?'施設を追加・保存しました ✓':'施設を追加しました（保存失敗）'));
+}
+
+// 配布記録保存（GAS保存追加）
+const _origSaveDelivery = saveDelivery;
+function saveDelivery(){
+  const facId=parseInt(document.getElementById('dmFacId').value);
+  const count=parseInt(document.getElementById('dmCount').value)||0;
+  if(!count){toast('配布数を入力');return;}
+  const f=facilities.find(x=>x.id===facId);
+  f.status=count>=f.target?'ok':'partial';
+  f.lastDelivery=new Date().toISOString().split('T')[0];
+  const d={id:Date.now(),facId,facName:f.name,person:currentPerson.name,count,meter:document.getElementById('dmMeter').value,time:new Date().toLocaleString('ja-JP'),photo:dmPhotoData,area:f.area};
+  deliveries.push(d);
+  const cb=document.getElementById('fcb'+facId);
+  if(cb){cb.textContent='✓';document.getElementById('fcheck'+facId).classList.add('done');}
+  closeModal('deliveryModal');
+  renderDDoneList();renderDHome();
+  // GASに保存（photoは除く）
+  const dNoPhoto={...d};delete dNoPhoto.photo;
+  gasSaveDelivery(dNoPhoto);
+  gasUpdateFacilityStatus(facId, f.status, f.lastDelivery);
+  toast(`${f.name} に ${count}個 配布 ✓`);
+}
+
+// 委託者追加（GAS保存追加）
+const _origAddPerson = addPerson;
+function addPerson(){
+  const name=document.getElementById('npName').value.trim();
+  if(!name){toast('氏名を入力');return;}
+  const pin=String(document.getElementById('npPin').value||'0000').padStart(4,'0');const p={id:Date.now(),name,area:document.getElementById('npArea').value,car:document.getElementById('npCar').value,fuel:parseFloat(document.getElementById('npFuel').value)||12,pin};
+  persons.push(p);
+  receipts[name]=[];photos[name]={meter:[],rack:[],facility:[],other:[]};meterLogs[name]={start:null,end:null,diff:null};
+  closeModal('addPersonModal');
+  populateAllSelects();renderPersonList();renderAdminToday();renderDelegateItems();
+  gasSavePerson(p).then(r=>toast(r?.ok?`${name} を追加・保存 ✓`:`${name} を追加しました`));
+}
+
+// スケジュール追加（GAS保存追加）
+const _origAddSchedule = addSchedule;
+function addSchedule(){
+  const s={id:Date.now(),person:document.getElementById('nsPerson').value,date:document.getElementById('nsDate').value,area:document.getElementById('nsArea').value,note:document.getElementById('nsNote').value,urgent:false};
+  schedules.push(s);
+  closeModal('addSchedModal');
+  renderScheduleList();
+  gasSaveSchedule(s).then(r=>toast(r?.ok?'スケジュールを追加・保存 ✓':'スケジュールを追加しました'));
+}
+
+// 緊急割り当て（GAS保存追加）
+const _origDoAssign = doAssign;
+function doAssign(){
+  const f=facilities.find(x=>x.id===assignFacId);
+  const s={id:Date.now(),person:document.getElementById('assignPerson').value,date:document.getElementById('assignDate').value,area:f.area,note:`【緊急】${f.name}補充 ${document.getElementById('assignNote').value}`,urgent:true};
+  schedules.push(s);
+  closeModal('assignModal');
+  renderScheduleList();renderAdminToday();
+  gasSaveSchedule(s).then(()=>toast(`${s.person} に ${f.name} を割り当て ✓`));
+}
+
+// スケジュール削除（GAS削除追加）
+const _origDeleteSchedule = deleteSchedule;
+function deleteSchedule(id){
+  schedules=schedules.filter(s=>s.id!==id);
+  renderScheduleList();
+  gasDeleteSchedule(id);
+  toast('削除しました');
+}
+
+// 委託者削除（GAS削除追加）
+const _origDeletePerson = deletePerson;
+function deletePerson(id){
+  const p=persons.find(x=>x.id===id);
+  if(!confirm(`「${p.name}」を削除しますか？`))return;
+  persons=persons.filter(x=>x.id!==id);
+  populateAllSelects();renderPersonList();renderAdminToday();renderDelegateItems();
+  gasDeletePerson(id);
+  toast(`${p.name} を削除`);
+}
+
+// 領収書アップロード（GAS保存追加）
+const _origHandleReceiptUpload = handleReceiptUpload;
+function handleReceiptUpload(input,type){
+  if(!input.files[0])return;
+  const file=input.files[0];
+  const r=new FileReader();
+  r.onload=e=>{
+    const rec={id:Date.now(),type,name:file.name,amount:0,date:new Date().toLocaleDateString('ja-JP'),src:e.target.result};
+    // 金額入力ダイアログ
+    const amount = parseInt(prompt(`「${file.name}」の金額を入力してください（円）`,''))||0;
+    rec.amount = amount;
+    const p=currentPerson.name;
+    receipts[p].push(rec);
+    renderDReceipts();
+    gasSaveReceipt({id:rec.id,person:p,type,name:file.name,amount,date:rec.date});
+    toast('領収書をアップロード ✓');
+  };
+  r.readAsDataURL(file);
+  input.value='';
+}
+
+// 委託者ログイン時もデータ読み込み
+const _origGoDelegate = goDelegate;
+function goDelegate(id){
+  currentPerson=persons.find(p=>p.id===id);
+  if(!currentPerson){
+    // personsがまだ読み込まれていない場合は読み込んでから
+    loadAllFromGAS().then(()=>{
+      currentPerson=persons.find(p=>p.id===id);
+      if(currentPerson){switchScreen('delegateScreen');initDelegate();}
+    });
+  } else {
+    switchScreen('delegateScreen');
+    initDelegate();
+    // バックグラウンドで最新データ取得
+    loadAllFromGAS().then(()=>{ renderDDelivery(); renderDHome(); });
+  }
+}
+
+// 起動時にお届け担当リストをGASから読み込む
+window.addEventListener('DOMContentLoaded', async ()=>{
+  showLoading('起動中...');
+  const data = await gasGet('getPersons');
+  if(data && data.length > 0){
+    persons = data.map(p=>({
+      id: Number(p.id)||Date.now(),
+      name: p.name||'',
+      area: p.area||'',
+      car: p.car||'',
+      fuel: Number(p.fuel)||12,
+      pin: p.pin||'0000'
+    }));
+    persons.forEach(p=>{
+      if(!receipts[p.name]) receipts[p.name]=[];
+      if(!photos[p.name])   photos[p.name]={meter:[],rack:[],facility:[],other:[]};
+      if(!meterLogs[p.name]) meterLogs[p.name]={start:null,end:null,diff:null};
+    });
+  }
+  hideLoading();
+  renderDelegateItems();
+});
+
+// 5分ごとの自動更新（お届け担当画面のみ）
+let autoRefreshTimer = null;
+
+function startAutoRefresh(){
+  stopAutoRefresh();
+  autoRefreshTimer = setInterval(async ()=>{
+    if(!currentPerson) return;
+    const prevScheds = JSON.stringify(schedules.filter(s=>s.person===currentPerson.name));
+    const prevPersonName = currentPerson.name;
+    await loadAllFromGAS();
+    const me = persons.find(p=>p.name===prevPersonName);
+    if(!me){ logout(); toast('アカウント情報が更新されました。再ログインしてください'); return; }
+    currentPerson = me;
+    const newScheds = JSON.stringify(schedules.filter(s=>s.person===currentPerson.name));
+    if(prevScheds !== newScheds){ toast('📅 スケジュールが更新されました！'); }
+    renderDHome();
+    renderDDelivery();
+    document.getElementById('dName').textContent = currentPerson.name;
+    document.getElementById('dAreaLabel').textContent = '担当：'+currentPerson.area;
+  }, 1 * 60 * 1000); // 1分ごとに更新
+}
+
+function stopAutoRefresh(){
+  if(autoRefreshTimer){ clearInterval(autoRefreshTimer); autoRefreshTimer=null; }
+}
+
+// initDelegateに自動更新を組み込む（上書き方式をやめてシンプルに）
+const _baseInitDelegate = initDelegate;
+function initDelegate(){
+  _baseInitDelegate();
+  startAutoRefresh();
+}
+
+// logoutに自動更新停止を追加（元のlogout関数を直接拡張）
+const _baseLogout = logout;
+function logout(){
+  stopAutoRefresh();
+  currentPerson=null;
+  pinBuffer='';
+  delegatePinBuffer='';
+  updatePinDots();
+  backToRole();
+  switchScreen('loginScreen');
+}
+</script>
+</body>
+</html>
